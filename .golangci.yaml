@@ -1,0 +1,113 @@
+version: "2"
+linters:
+  default: none
+  enable:
+    - asasalint
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - cyclop
+    - decorder
+    - dupl
+    - durationcheck
+    - errcheck
+    - errname
+    - errorlint
+    - exhaustive
+    - forbidigo
+    - funlen
+    - gocheckcompilerdirectives
+    - gocognit
+    - goconst
+    - gocritic
+    - gocyclo
+    - godot
+    - gomoddirectives
+    - gomodguard_v2
+    - goprintffuncname
+    - gosec
+    - govet
+    - ineffassign
+    - lll
+    - loggercheck
+    - makezero
+    - mirror
+    - mnd
+    - musttag
+    - nakedret
+    - nestif
+    - nilerr
+    - noctx
+    - nolintlint
+    - nosprintfhostport
+    - predeclared
+    - reassign
+    - revive
+    - rowserrcheck
+    - sqlclosecheck
+    - staticcheck
+    - testableexamples
+    - tparallel
+    - unconvert
+    - unparam
+    - unused
+    - usestdlibvars
+    - usetesting
+    - wastedassign
+    - whitespace
+  settings:
+    cyclop:
+      max-complexity: 20
+    funlen:
+      lines: 90
+      ignore-comments: true
+    lll:
+      line-length: 160
+    nestif:
+      min-complexity: 6
+    mnd:
+      ignored-files: []
+    revive:
+      rules:
+        - name: var-naming
+          severity: warning
+          disabled: false
+          exclude: [""]
+          arguments:
+            - [] # AllowList
+            - [] # DenyList
+            - - skip-initialism-name-checks: true
+                upper-case-const: true
+                skip-package-name-checks: true
+                skip-package-name-collision-with-go-std: true
+                extra-bad-package-names: []
+
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - dupl
+          - gocognit
+          - funlen
+          - cyclop
+        source: ^func Test
+      - linters:
+          - gosec
+        path: '^.*test\.go$'
+      - linters:
+          - unparam
+          - unused
+        path: '^.*test\.go$'
+    paths: []
+
+formatters:
+  enable:
+    - goimports
+  exclusions:
+    generated: lax
+    paths: []
