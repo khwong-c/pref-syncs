@@ -7,7 +7,6 @@ require (
 	github.com/glebarez/sqlite v1.11.0
 	github.com/go-chi/chi/v5 v5.3.2
 	github.com/go-chi/render v1.0.3
-	github.com/libraz/go-oidc-provider v1.2.0
 	github.com/samber/do/http/chi/v2 v2.0.0-20260820232400-d9699bc31883
 	github.com/samber/do/v2 v2.1.0
 	github.com/samber/lo v1.53.0
@@ -33,6 +32,7 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
+	github.com/libraz/go-oidc-provider v1.2.0 // indirect
 	github.com/logrusorgru/aurora v2.0.3+incompatible // indirect
 	github.com/logrusorgru/aurora/v4 v4.0.0 // indirect
 	github.com/mattn/go-isatty v0.0.17 // indirect
