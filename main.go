@@ -17,10 +17,6 @@ func main() {
 	s := di.InvokeOrProvide(i, server.NewServer)
 
 	go s.ListenAndServe() //nolint:errcheck
-	//go func() {
-	//	time.Sleep(3 * time.Second)
-	//	_ = syscall.Kill(syscall.Getpid(), syscall.SIGINT)
-	//}()
 	// Shutdown Gracefully
 	_, _ = i.ShutdownOnSignals(
 		syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL,

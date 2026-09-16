@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"net/http"
 	"time"
@@ -11,8 +12,10 @@ import (
 	dochi "github.com/samber/do/http/chi/v2"
 	"github.com/samber/do/v2"
 
+	"github.com/khwong-c/pref-syncs/config"
 	"github.com/khwong-c/pref-syncs/features"
 	"github.com/khwong-c/pref-syncs/server/middlewares"
+	"github.com/khwong-c/pref-syncs/tooling/di"
 )
 
 type Server struct {
@@ -26,12 +29,13 @@ type Server struct {
 
 func NewServer(inj do.Injector) (*Server, error) {
 	const readHeaderTimeout = 10 * time.Second
+	cfg := di.InvokeOrProvide(inj, config.LoadConfig)
 	serverCtx, shutdown := context.WithCancel(context.Background())
 	r := chi.NewRouter()
 
 	newServer := &Server{
 		Server: &http.Server{
-			Addr:              ":7086",
+			Addr:              fmt.Sprintf(":%d", cfg.Port),
 			Handler:           r,
 			ReadHeaderTimeout: readHeaderTimeout,
 			BaseContext: func(_ net.Listener) context.Context {
@@ -42,7 +46,8 @@ func NewServer(inj do.Injector) (*Server, error) {
 		appLogic: features.NewAppLogic(inj),
 		auth:     middlewares.NewAuthenticator(inj),
 
-		shutdown: shutdown}
+		shutdown: shutdown,
+	}
 
 	r.Use(middleware.StripSlashes)
 	r.Use(middleware.NoCache)
@@ -57,6 +62,15 @@ func NewServer(inj do.Injector) (*Server, error) {
 	newServer.MountAppRoutes()
 	newServer.MountPrefRoutes()
 	newServer.MountUserRoutes()
+
+	if cfg.IDP.Enable {
+		const oidcPath = "/idp"
+		oidpHandler, err := createLocalIDP(cfg, oidcPath)
+		if err != nil {
+			return nil, err
+		}
+		r.Mount(oidcPath, oidpHandler)
+	}
 
 	// r.Route("/auth/{provider}", func(r chi.Router) {
 	// 	r.Get("/login", newServer.HandleAuthLogin)
