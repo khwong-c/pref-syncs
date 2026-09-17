@@ -30,7 +30,7 @@ const (
 	StubRootSubject   = "root-user"
 )
 
-func createLocalIDP(cfg *config.Config, idpPath string, cbPath string) (http.Handler, error) {
+func createLocalIDP(cfg *config.Config, cbPath string) (http.Handler, error) {
 	// Generate ephemeral keys for signing.
 	const CookieKeyLength = 32
 	priv, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
@@ -48,7 +48,7 @@ func createLocalIDP(cfg *config.Config, idpPath string, cbPath string) (http.Han
 	)
 
 	handler, err := op.New(
-		op.WithIssuer(fmt.Sprintf("http://127.0.0.1:%d%s", cfg.Port, idpPath)),
+		op.WithIssuer(fmt.Sprintf("http://127.0.0.1:%d%s", cfg.Port, cfg.IDP.Path)),
 		op.WithStore(st),
 		op.WithKeyset(op.Keyset{{KeyID: "k1", Signer: priv}}),
 		op.WithCookieKeys(cookieKey),
@@ -110,7 +110,7 @@ func createLocalIDP(cfg *config.Config, idpPath string, cbPath string) (http.Han
 	return handler, nil
 }
 
-func createLocalIDPCallbackHandler(cfg *config.Config, idpPath string, cbPath string) http.HandlerFunc {
+func createLocalIDPCallbackHandler(cfg *config.Config, cbPath string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		code := r.URL.Query().Get("code")
 		ctx := r.Context()
@@ -129,8 +129,8 @@ func createLocalIDPCallbackHandler(cfg *config.Config, idpPath string, cbPath st
 			ClientSecret: StubClientSecret,
 			Scopes:       []string{"openid"},
 			Endpoint: oauth2.Endpoint{
-				AuthURL:   fmt.Sprintf("http://127.0.0.1:%d%s/oidc/auth", cfg.Port, idpPath),
-				TokenURL:  fmt.Sprintf("http://127.0.0.1:%d%s/oidc/token", cfg.Port, idpPath),
+				AuthURL:   fmt.Sprintf("http://127.0.0.1:%d%s/oidc/auth", cfg.Port, cfg.IDP.Path),
+				TokenURL:  fmt.Sprintf("http://127.0.0.1:%d%s/oidc/token", cfg.Port, cfg.IDP.Path),
 				AuthStyle: oauth2.AuthStyleAutoDetect,
 			},
 			RedirectURL: fmt.Sprintf("http://127.0.0.1:%d%s", cfg.Port, cbPath),

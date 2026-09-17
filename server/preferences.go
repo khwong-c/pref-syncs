@@ -17,19 +17,6 @@ import (
 	"github.com/khwong-c/pref-syncs/server/middlewares"
 )
 
-func (s *Server) MountPrefRoutes() {
-	r := s.router
-	// TODO: Remove {user} later on by accessing the user from the request context
-	r.Route("/pref", func(r chi.Router) {
-		r.Post("/{user}/{app}", s.HandlePostPref)
-		r.Post("/{user}/{app}/from/{src}", s.HandlePostPref)
-		r.Get("/{user}/{app}", s.HandleGetPerf)
-		r.Delete("/{user}/{app}", s.HandleDeletePref)
-		r.Get("/notification/{user}/{app}/from/{src}", s.HandleStartNotification)
-		r.Get("/notification/{user}/{app}", s.HandleStartNotification)
-	})
-}
-
 type prefRspPayload struct {
 	UserID    uuid.UUID `json:"user_id"`
 	AppID     uuid.UUID `json:"app_id"`

@@ -33,7 +33,7 @@ func NewServer(inj do.Injector) (*Server, error) {
 	serverCtx, shutdown := context.WithCancel(context.Background())
 	r := chi.NewRouter()
 
-	newServer := &Server{
+	s := &Server{
 		Server: &http.Server{
 			Addr:              fmt.Sprintf(":%d", cfg.Port),
 			Handler:           r,
@@ -43,8 +43,8 @@ func NewServer(inj do.Injector) (*Server, error) {
 			},
 		},
 		router:   r,
-		appLogic: features.NewAppLogic(inj),
-		auth:     middlewares.NewAuthenticator(inj),
+		appLogic: di.InvokeOrProvide(inj, features.NewAppLogic),
+		auth:     middlewares.NewAuthenticator(inj, cfg),
 
 		shutdown: shutdown,
 	}
@@ -52,37 +52,73 @@ func NewServer(inj do.Injector) (*Server, error) {
 	r.Use(middleware.StripSlashes)
 	r.Use(middleware.NoCache)
 	r.Use(middlewares.ErrorBuilder)
-	r.Use(newServer.auth.UserContext)
 
 	dochi.Use(r, "/debug/di", inj)
-
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte("Hello World"))
 	})
-	newServer.MountAppRoutes()
-	newServer.MountPrefRoutes()
-	newServer.MountUserRoutes()
 
 	if cfg.IDP.Enable {
 		const (
-			oidcPath     = "/idp"
 			callbackPath = "/auth-cb"
 		)
 
-		oidpHandler, err := createLocalIDP(cfg, oidcPath, callbackPath)
+		oidpHandler, err := createLocalIDP(cfg, callbackPath)
 		if err != nil {
 			return nil, err
 		}
-		r.Mount(oidcPath, oidpHandler)
-		r.Get(callbackPath, createLocalIDPCallbackHandler(cfg, oidcPath, callbackPath))
+		r.Mount(cfg.IDP.Path, oidpHandler)
+		r.Get(callbackPath, createLocalIDPCallbackHandler(cfg, callbackPath))
 	}
+
+	r.Group(func(r chi.Router) {
+		r.Use(s.auth.Middleware())
+		r.Use(s.auth.UserContext)
+		r.Route("/app", func(r chi.Router) {
+			r.Use(s.auth.IsUser)
+			r.Post("/", s.HandleNewApp)
+			r.Get("/{id}", s.HandleGetApp)
+			r.Put("/{id}", s.HandleGetApp)
+			r.Delete("/{id}", s.HandleDeleteApp)
+		})
+
+		// TODO: Remove {user} later on by accessing the user from the request context
+		r.Route("/user", func(r chi.Router) {
+			r.Post("/", s.HandleNewUser)
+
+			r.Group(func(r chi.Router) {
+				r.Use(s.auth.IsUser)
+				r.Get("/", s.HandleGetUser)
+			})
+			r.Group(func(r chi.Router) {
+				r.Use(s.auth.IsUser)
+				r.Use(s.auth.IsAdmin)
+				r.Post("/{user}", s.HandleNewUser) // TODO: Temp Routine for testing
+				r.Get("/{user}", s.HandleGetUser)  // TODO: Temp Routine for testing
+				r.Delete("/{user}", s.HandleDeleteUser)
+				r.Put("/{user}/{app}", s.HandleAuthoriseUser)
+				r.Delete("/{user}/{app}", s.HandleDeauthoriseUser)
+			})
+		})
+
+		// TODO: Remove {user} later on by accessing the user from the request context
+		r.Route("/pref", func(r chi.Router) {
+			r.Use(s.auth.IsUser)
+			r.Post("/{user}/{app}", s.HandlePostPref)
+			r.Post("/{user}/{app}/from/{src}", s.HandlePostPref)
+			r.Get("/{user}/{app}", s.HandleGetPerf)
+			r.Delete("/{user}/{app}", s.HandleDeletePref)
+			r.Get("/notification/{user}/{app}/from/{src}", s.HandleStartNotification)
+			r.Get("/notification/{user}/{app}", s.HandleStartNotification)
+		})
+	})
 
 	// r.Route("/auth/{provider}", func(r chi.Router) {
 	// 	r.Get("/login", newServer.HandleAuthLogin)
 	// 	r.Get("/callback", newServer.HandleAuthCallback)
 	// })
 
-	return newServer, nil
+	return s, nil
 }
 
 func (s *Server) Shutdown() {
