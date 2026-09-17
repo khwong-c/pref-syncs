@@ -15,6 +15,7 @@ require (
 	github.com/samber/oops v1.23.1
 	github.com/samber/ro v0.4.1
 	go.jetify.com/sse v0.1.0
+	golang.org/x/oauth2 v0.36.0
 	gorm.io/gorm v1.31.2
 )
 

@@ -64,12 +64,17 @@ func NewServer(inj do.Injector) (*Server, error) {
 	newServer.MountUserRoutes()
 
 	if cfg.IDP.Enable {
-		const oidcPath = "/idp"
-		oidpHandler, err := createLocalIDP(cfg, oidcPath)
+		const (
+			oidcPath     = "/idp"
+			callbackPath = "/auth-cb"
+		)
+
+		oidpHandler, err := createLocalIDP(cfg, oidcPath, callbackPath)
 		if err != nil {
 			return nil, err
 		}
 		r.Mount(oidcPath, oidpHandler)
+		r.Get(callbackPath, createLocalIDPCallbackHandler(cfg, oidcPath, callbackPath))
 	}
 
 	// r.Route("/auth/{provider}", func(r chi.Router) {
