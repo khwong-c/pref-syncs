@@ -50,7 +50,18 @@ func NewAuthenticator(injector do.Injector, cfg *config.Config) *Authenticator {
 	providers := tooling.Must(jwks.NewMultiIssuerProvider())
 	tokenValidator := tooling.Must(validator.New(
 		validator.WithKeyFunc(providers.KeyFunc),
-		validator.WithAlgorithm(validator.RS256),
+		validator.WithAlgorithms([]validator.SignatureAlgorithm{
+			validator.RS256,
+			validator.RS384,
+			validator.RS512,
+			validator.ES256,
+			validator.ES384,
+			validator.ES512,
+			validator.ES256K,
+			validator.PS256,
+			validator.PS384,
+			validator.PS512,
+		}),
 		validator.WithIssuers(validIssuers),
 		validator.WithAudiences(validAudiences),
 	))
@@ -83,7 +94,30 @@ func (a *Authenticator) UserContext(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-
+		claims, err := jwtmiddleware.GetClaims[*validator.ValidatedClaims](ctx)
+		if err != nil {
+			// Shouldn't occur.
+			SimpleHTTPError(
+				ctx, w, oops.FromContext(ctx).Wrap(err),
+				"Internal Server Error", http.StatusInternalServerError,
+			)
+		}
+		user, err := a.appLogic.GetUserByIssuer(
+			ctx,
+			claims.RegisteredClaims.Issuer,
+			claims.RegisteredClaims.Subject,
+		)
+		if err != nil {
+			SimpleHTTPError(
+				ctx, w, oops.FromContext(ctx).Wrap(err),
+				"Internal Server Error", http.StatusInternalServerError,
+			)
+		}
+		ctx = context.WithValue(ctx, userCtxKey{}, &UserInfoCtx{
+			Issuer:           user.AuthProvider,
+			UserIDFromIssuer: user.AuthUserID,
+			UserID:           user.ID,
+		})
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
