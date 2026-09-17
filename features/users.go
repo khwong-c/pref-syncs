@@ -15,6 +15,14 @@ func (a *AppLogic) GetUser(ctx context.Context, id uuid.UUID) (*repos.User, erro
 	return user, nil
 }
 
+func (a *AppLogic) GetUserByIssuer(ctx context.Context, issuer string, subject string) (*repos.User, error) {
+	user, err := a.dataRepo.GetOrCreateUser(ctx, issuer, subject)
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
+}
+
 func (a *AppLogic) CreateUser(ctx context.Context, user *repos.User) (*repos.User, error) {
 	newUser := &repos.User{
 		ID:           uuid.NewV7(),

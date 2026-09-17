@@ -12,16 +12,6 @@ import (
 	"github.com/khwong-c/pref-syncs/server/middlewares"
 )
 
-func (s *Server) MountAppRoutes() {
-	r := s.router
-	r.Route("/app", func(r chi.Router) {
-		r.Post("/", s.HandleNewApp)
-		r.Get("/{id}", s.HandleGetApp)
-		r.Put("/{id}", s.HandleGetApp)
-		r.Delete("/{id}", s.HandleDeleteApp)
-	})
-}
-
 type appReqPayload struct {
 	Name string `json:"name"`
 	Desc string `json:"desc"`

@@ -107,6 +107,42 @@ func (r *DataRepo) GetUser(ctx context.Context, id uuid.UUID) (*User, error) {
 	return user, nil
 }
 
+func (r *DataRepo) GetOrCreateUser(ctx context.Context, issuer string, subject string) (*User, error) {
+	tx := r.getTxFromCtx(ctx)
+	var user *User
+	err := tx.Transaction(func(tx *gorm.DB) error {
+		ctx = r.withTx(ctx, tx)
+		userRecord, err := gorm.G[User](tx).
+			Where(&User{
+				AuthProvider: issuer,
+				AuthUserID:   subject,
+			}).
+			Take(ctx)
+		if err == nil {
+			user = &userRecord
+			return nil
+		}
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return oops.FromContext(ctx).Wrap(err)
+		}
+
+		user = &User{
+			ID:           uuid.NewV7(),
+			AuthProvider: issuer,
+			AuthUserID:   subject,
+		}
+		err = gorm.G[User](tx).Create(ctx, user)
+		if err != nil {
+			return oops.FromContext(ctx).Wrap(err)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return user, err
+}
+
 func (r *DataRepo) CreateUser(ctx context.Context, user *User) (*User, error) {
 	tx := r.getTxFromCtx(ctx)
 	if err := gorm.G[User](tx).Create(ctx, user); err != nil {

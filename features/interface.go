@@ -13,13 +13,13 @@ type AppLogic struct {
 	notificationRepo repos.NotificationRepoI
 }
 
-func NewAppLogic(inj do.Injector) *AppLogic {
+func NewAppLogic(inj do.Injector) (*AppLogic, error) {
 	app := &AppLogic{
 		dataRepo:         repos.NewDataRepo(inj),
 		notificationRepo: di.InvokeOrProvide(inj, repos.NewSingleContainerNotifier),
 	}
 	if err := app.dataRepo.InitDB(); err != nil {
-		panic(oops.Wrapf(err, "failed to initialize database"))
+		return nil, oops.Wrapf(err, "failed to initialize database")
 	}
-	return app
+	return app, nil
 }

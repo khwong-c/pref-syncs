@@ -12,29 +12,6 @@ import (
 	"github.com/khwong-c/pref-syncs/server/middlewares"
 )
 
-func (s *Server) MountUserRoutes() {
-	r := s.router
-	// TODO: Remove {user} later on by accessing the user from the request context
-	r.Route("/user", func(r chi.Router) {
-		r.Post("/", s.HandleNewUser)
-
-		r.Group(func(r chi.Router) {
-			r.Use(s.auth.IsUser)
-			r.Get("/", s.HandleGetUser)
-		})
-
-		r.Group(func(r chi.Router) {
-			r.Use(s.auth.IsUser)
-			r.Use(s.auth.IsAdmin)
-			r.Post("/{user}", s.HandleNewUser) // TODO: Temp Routine for testing
-			r.Get("/{user}", s.HandleGetUser)  // TODO: Temp Routine for testing
-			r.Delete("/{user}", s.HandleDeleteUser)
-			r.Put("/{user}/{app}", s.HandleAuthoriseUser)
-			r.Delete("/{user}/{app}", s.HandleDeauthoriseUser)
-		})
-	})
-}
-
 func (s *Server) HandleNewUser(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 

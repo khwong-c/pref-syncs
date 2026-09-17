@@ -10,6 +10,7 @@ type Config struct {
 	Port int `default:"7086"`
 	IDP  struct {
 		Enable   bool   `default:"false" usage:"Enable embedded IDP for testing."`
+		Path     string `default:"/idp" usage:"Path of the Local IDP."`
 		User     string `default:"root"  usage:"Default user of the Local IDP."`
 		Password string `default:"root"  usage:"Default password of the Local IDP."`
 	}
