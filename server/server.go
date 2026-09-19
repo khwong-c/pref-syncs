@@ -74,42 +74,42 @@ func NewServer(inj do.Injector) (*Server, error) {
 	r.Group(func(r chi.Router) {
 		r.Use(s.auth.Middleware())
 		r.Use(s.auth.UserContext)
+		r.With(s.auth.IsUser).Get("/app/{id}", s.HandleGetApp)
 		r.Route("/app", func(r chi.Router) {
 			r.Use(s.auth.IsUser)
+			r.Use(s.auth.IsAdmin)
 			r.Post("/", s.HandleNewApp)
-			r.Get("/{id}", s.HandleGetApp)
 			r.Put("/{id}", s.HandleGetApp)
 			r.Delete("/{id}", s.HandleDeleteApp)
 		})
 
-		// TODO: Remove {user} later on by accessing the user from the request context
 		r.Route("/user", func(r chi.Router) {
-			r.Post("/", s.HandleNewUser)
-
 			r.Group(func(r chi.Router) {
 				r.Use(s.auth.IsUser)
 				r.Get("/", s.HandleGetUser)
+				r.Delete("/", s.HandleDeleteUser)
+				r.Put("/to/{app}", s.HandleAuthoriseUser)
+				r.Delete("/from/{app}", s.HandleDeauthoriseUser)
 			})
-			r.Group(func(r chi.Router) {
-				r.Use(s.auth.IsUser)
-				r.Use(s.auth.IsAdmin)
-				r.Post("/{user}", s.HandleNewUser) // TODO: Temp Routine for testing
-				r.Get("/{user}", s.HandleGetUser)  // TODO: Temp Routine for testing
-				r.Delete("/{user}", s.HandleDeleteUser)
-				r.Put("/{user}/{app}", s.HandleAuthoriseUser)
-				r.Delete("/{user}/{app}", s.HandleDeauthoriseUser)
-			})
+			// // Capacity to modify other users
+			// r.Group(func(r chi.Router) {
+			// 	r.Use(s.auth.IsUser)
+			// 	r.Use(s.auth.IsAdmin)
+			// 	r.Get("/{user}", s.HandleGetUser)
+			// 	r.Delete("/{user}", s.HandleDeleteUser)
+			// 	r.Put("/{user}/to/{app}", s.HandleAuthoriseUser)
+			// 	r.Delete("/{user}/from/{app}", s.HandleDeauthoriseUser)
+			// })
 		})
 
-		// TODO: Remove {user} later on by accessing the user from the request context
 		r.Route("/pref", func(r chi.Router) {
 			r.Use(s.auth.IsUser)
-			r.Post("/{user}/{app}", s.HandlePostPref)
-			r.Post("/{user}/{app}/from/{src}", s.HandlePostPref)
-			r.Get("/{user}/{app}", s.HandleGetPerf)
-			r.Delete("/{user}/{app}", s.HandleDeletePref)
-			r.Get("/notification/{user}/{app}/from/{src}", s.HandleStartNotification)
-			r.Get("/notification/{user}/{app}", s.HandleStartNotification)
+			r.Post("/{app}", s.HandlePostPref)
+			r.Post("/{app}/from/{src}", s.HandlePostPref)
+			r.Get("/{app}", s.HandleGetPerf)
+			r.Delete("/{app}", s.HandleDeletePref)
+			r.Get("/notification/{app}", s.HandleStartNotification)
+			r.Get("/notification/{app}/from/{src}", s.HandleStartNotification)
 		})
 	})
 

@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
+	"github.com/samber/oops"
 
 	"github.com/khwong-c/pref-syncs/features/repos"
 	"github.com/khwong-c/pref-syncs/server/middlewares"
@@ -25,6 +26,10 @@ type appRspPayload struct {
 
 func (s *Server) HandleNewApp(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+
+	uid := middlewares.GetUserID(ctx)
+	oops.FromContext(ctx).Assert(uid != uuid.Nil())
+
 	payload := &appReqPayload{}
 	if err := json.UnmarshalRead(r.Body, payload); err != nil {
 		middlewares.SimpleHTTPError(
@@ -33,8 +38,8 @@ func (s *Server) HandleNewApp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	newApp, err := s.appLogic.CreateApp(ctx, &repos.App{
-		Name: payload.Name,
-		Desc: payload.Desc,
+		Name:      payload.Name,
+		Desc:      payload.Desc,
 	})
 	if err != nil {
 		middlewares.SimpleHTTPError(

@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
+	"github.com/samber/oops"
 	"github.com/samber/ro"
 	"go.jetify.com/sse"
 
@@ -27,13 +28,9 @@ type prefRspPayload struct {
 func (s *Server) HandlePostPref(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	uid, err := uuid.Parse(chi.URLParam(r, "user"))
-	if err != nil {
-		middlewares.SimpleHTTPError(
-			ctx, w, err, "Invalid UUID", http.StatusBadRequest,
-		)
-		return
-	}
+	uid := middlewares.GetUserID(ctx)
+	oops.FromContext(ctx).Assert(uid != uuid.Nil())
+
 	aid, err := uuid.Parse(chi.URLParam(r, "app"))
 	if err != nil {
 		middlewares.SimpleHTTPError(
@@ -86,13 +83,10 @@ func (s *Server) HandlePostPref(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) HandleGetPerf(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	uid, err := uuid.Parse(chi.URLParam(r, "user"))
-	if err != nil {
-		middlewares.SimpleHTTPError(
-			ctx, w, err, "Invalid UUID", http.StatusBadRequest,
-		)
-		return
-	}
+
+	uid := middlewares.GetUserID(ctx)
+	oops.FromContext(ctx).Assert(uid != uuid.Nil())
+
 	aid, err := uuid.Parse(chi.URLParam(r, "app"))
 	if err != nil {
 		middlewares.SimpleHTTPError(
@@ -119,13 +113,9 @@ func (s *Server) HandleGetPerf(w http.ResponseWriter, r *http.Request) {
 func (s *Server) HandleDeletePref(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	uid, err := uuid.Parse(chi.URLParam(r, "user"))
-	if err != nil {
-		middlewares.SimpleHTTPError(
-			ctx, w, err, "Invalid UUID", http.StatusBadRequest,
-		)
-		return
-	}
+	uid := middlewares.GetUserID(ctx)
+	oops.FromContext(ctx).Assert(uid != uuid.Nil())
+
 	aid, err := uuid.Parse(chi.URLParam(r, "app"))
 	if err != nil {
 		middlewares.SimpleHTTPError(
@@ -151,13 +141,9 @@ func (s *Server) HandleStartNotification(w http.ResponseWriter, r *http.Request)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	uid, err := uuid.Parse(chi.URLParam(r, "user"))
-	if err != nil {
-		middlewares.SimpleHTTPError(
-			ctx, w, err, "Invalid UUID", http.StatusBadRequest,
-		)
-		return
-	}
+	uid := middlewares.GetUserID(ctx)
+	oops.FromContext(ctx).Assert(uid != uuid.Nil())
+
 	aid, err := uuid.Parse(chi.URLParam(r, "app"))
 	if err != nil {
 		middlewares.SimpleHTTPError(

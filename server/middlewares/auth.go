@@ -20,7 +20,6 @@ import (
 
 // TODO: Implement This.
 var (
-	fixedUserID  = uuid.MustParse("01a0734e-795a-72bc-874b-9b90c41ddc8b")
 	fixedAdminID = uuid.MustParse("01a08408-6237-7008-9508-263f5cf27759")
 )
 
@@ -162,4 +161,12 @@ func GetUserInfo(ctx context.Context) *UserInfoCtx {
 		return nil
 	}
 	return userInfoCtx
+}
+
+func GetUserID(ctx context.Context) uuid.UUID {
+	userInfoCtx, ok := ctx.Value(userCtxKey{}).(*UserInfoCtx)
+	if !ok {
+		return uuid.Nil()
+	}
+	return userInfoCtx.UserID
 }
