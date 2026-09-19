@@ -9,9 +9,10 @@ import (
 
 func (a *AppLogic) CreateApp(ctx context.Context, app *repos.App) (*repos.App, error) {
 	newEntry := &repos.App{
-		ID:   uuid.NewV7(),
-		Name: app.Name,
-		Desc: app.Desc,
+		ID:        uuid.NewV7(),
+		Name:      app.Name,
+		Desc:      app.Desc,
+		CreatedBy: app.CreatedBy,
 	}
 	newEntry, err := a.dataRepo.CreateApp(ctx, newEntry)
 	if err != nil {

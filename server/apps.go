@@ -40,6 +40,7 @@ func (s *Server) HandleNewApp(w http.ResponseWriter, r *http.Request) {
 	newApp, err := s.appLogic.CreateApp(ctx, &repos.App{
 		Name:      payload.Name,
 		Desc:      payload.Desc,
+		CreatedBy: uid,
 	})
 	if err != nil {
 		middlewares.SimpleHTTPError(

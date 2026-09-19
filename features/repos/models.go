@@ -6,9 +6,10 @@ import (
 )
 
 type App struct {
-	ID   uuid.UUID `gorm:"primaryKey;autoIncrement:false"`
-	Name string
-	Desc string
+	ID        uuid.UUID `gorm:"primaryKey;autoIncrement:false"`
+	Name      string
+	Desc      string
+	CreatedBy uuid.UUID
 }
 
 type User struct {
