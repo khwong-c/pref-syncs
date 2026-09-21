@@ -9,19 +9,23 @@ import (
 	"github.com/go-chi/render"
 	"github.com/samber/oops"
 
-	"github.com/khwong-c/pref-syncs/features/repos"
+	"github.com/khwong-c/pref-syncs/features"
 	"github.com/khwong-c/pref-syncs/server/middlewares"
 )
 
 type appReqPayload struct {
-	Name string `json:"name"`
-	Desc string `json:"desc"`
+	Name       *string `json:"name"`
+	Desc       *string `json:"desc"`
+	MaxPayload *int    `json:"max_payload"`
+	MaxUser    *int    `json:"max_user"`
 }
 
 type appRspPayload struct {
-	ID   uuid.UUID `json:"id"`
-	Name string    `json:"name"`
-	Desc string    `json:"desc"`
+	ID         uuid.UUID `json:"id"`
+	Name       string    `json:"name"`
+	Desc       string    `json:"desc"`
+	MaxPayload int       `json:"max_payload"`
+	MaxUser    int       `json:"max_user"`
 }
 
 func (s *Server) HandleNewApp(w http.ResponseWriter, r *http.Request) {
@@ -37,10 +41,13 @@ func (s *Server) HandleNewApp(w http.ResponseWriter, r *http.Request) {
 		)
 		return
 	}
-	newApp, err := s.appLogic.CreateApp(ctx, &repos.App{
-		Name:      payload.Name,
-		Desc:      payload.Desc,
-		CreatedBy: uid,
+
+	newApp, err := s.appLogic.CreateApp(ctx, &features.AppUpsertReq{
+		CreatedBy:  uid,
+		Desc:       payload.Desc,
+		Name:       payload.Name,
+		MaxPayload: payload.MaxPayload,
+		MaxUser:    payload.MaxUser,
 	})
 	if err != nil {
 		middlewares.SimpleHTTPError(
@@ -49,15 +56,17 @@ func (s *Server) HandleNewApp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	render.JSON(w, r, appRspPayload{
-		ID:   newApp.ID,
-		Name: newApp.Name,
-		Desc: newApp.Desc,
+		ID:         newApp.ID,
+		Name:       newApp.Name,
+		Desc:       newApp.Desc,
+		MaxPayload: newApp.MaxPayload,
+		MaxUser:    newApp.MaxUser,
 	})
 }
 
 func (s *Server) HandleGetApp(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	id, err := uuid.Parse(chi.URLParam(r, "app"))
 	if err != nil {
 		middlewares.SimpleHTTPError(
 			ctx, w, err, "Invalid UUID", http.StatusBadRequest,
@@ -72,15 +81,17 @@ func (s *Server) HandleGetApp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	render.JSON(w, r, appRspPayload{
-		ID:   app.ID,
-		Name: app.Name,
-		Desc: app.Desc,
+		ID:         app.ID,
+		Name:       app.Name,
+		Desc:       app.Desc,
+		MaxPayload: app.MaxPayload,
+		MaxUser:    app.MaxUser,
 	})
 }
 
 func (s *Server) HandleModifyApp(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	appID, err := uuid.Parse(chi.URLParam(r, "app"))
 	if err != nil {
 		middlewares.SimpleHTTPError(
 			ctx, w, err, "Invalid UUID", http.StatusBadRequest,
@@ -88,18 +99,25 @@ func (s *Server) HandleModifyApp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	payload := &appReqPayload{}
-	if err := json.UnmarshalRead(r.Body, payload); err != nil {
+	userID := middlewares.GetUserID(ctx)
+
+	req := &appReqPayload{}
+	if err := json.UnmarshalRead(r.Body, req); err != nil {
 		middlewares.SimpleHTTPError(
 			ctx, w, err, "Invalid Payload", http.StatusBadRequest,
 		)
 		return
 	}
 
-	modApp, err := s.appLogic.ModifyApp(ctx, id, &repos.App{
-		Name: payload.Name,
-		Desc: payload.Desc,
-	})
+	modApp, err := s.appLogic.ModifyApp(
+		ctx, userID, appID,
+		&features.AppUpsertReq{
+			Name:       req.Name,
+			Desc:       req.Desc,
+			MaxPayload: req.MaxPayload,
+			MaxUser:    req.MaxUser,
+		},
+	)
 	if err != nil {
 		middlewares.SimpleHTTPError(
 			ctx, w, err, "Failed to modify App", 0,
@@ -107,15 +125,17 @@ func (s *Server) HandleModifyApp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	render.JSON(w, r, appRspPayload{
-		ID:   modApp.ID,
-		Name: modApp.Name,
-		Desc: modApp.Desc,
+		ID:         modApp.ID,
+		Name:       modApp.Name,
+		Desc:       modApp.Desc,
+		MaxPayload: modApp.MaxPayload,
+		MaxUser:    modApp.MaxUser,
 	})
 }
 
 func (s *Server) HandleDeleteApp(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	id, err := uuid.Parse(chi.URLParam(r, "app"))
 	if err != nil {
 		middlewares.SimpleHTTPError(
 			ctx, w, err, "Invalid UUID", http.StatusBadRequest,

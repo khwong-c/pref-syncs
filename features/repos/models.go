@@ -6,10 +6,19 @@ import (
 )
 
 type App struct {
-	ID        uuid.UUID `gorm:"primaryKey;autoIncrement:false"`
-	Name      string
-	Desc      string
-	CreatedBy uuid.UUID
+	ID         uuid.UUID `gorm:"primaryKey;autoIncrement:false"`
+	Name       string
+	Desc       string
+	CreatedBy  uuid.UUID
+	MaxPayload int
+	MaxUser    int
+}
+
+type AppUpdate struct {
+	Name       *string
+	Desc       *string
+	MaxPayload *int
+	MaxUser    *int
 }
 
 type User struct {

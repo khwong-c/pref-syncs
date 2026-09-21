@@ -74,13 +74,13 @@ func NewServer(inj do.Injector) (*Server, error) {
 	r.Group(func(r chi.Router) {
 		r.Use(s.auth.Middleware())
 		r.Use(s.auth.UserContext)
-		r.With(s.auth.IsUser).Get("/app/{id}", s.HandleGetApp)
+		r.With(s.auth.IsUser).Get("/app/{app}", s.HandleGetApp)
 		r.Route("/app", func(r chi.Router) {
 			r.Use(s.auth.IsUser)
 			r.Use(s.auth.IsAdmin)
 			r.Post("/", s.HandleNewApp)
-			r.Put("/{id}", s.HandleGetApp)
-			r.Delete("/{id}", s.HandleDeleteApp)
+			r.Put("/{app}", s.HandleModifyApp)
+			r.Delete("/{app}", s.HandleDeleteApp)
 		})
 
 		r.Route("/user", func(r chi.Router) {
