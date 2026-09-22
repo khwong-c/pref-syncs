@@ -1,9 +1,8 @@
 package server
 
 import (
-	"bytes"
 	"context"
-	"encoding/json/v2"
+	"encoding/json"
 	"net/http"
 	"time"
 	"uuid"
@@ -19,10 +18,10 @@ import (
 )
 
 type prefRspPayload struct {
-	UserID    uuid.UUID `json:"user_id"`
-	AppID     uuid.UUID `json:"app_id"`
-	UpdatedAt time.Time `json:"updated_at"`
-	Data      any       `json:"data"`
+	UserID    uuid.UUID       `json:"user_id"`
+	AppID     uuid.UUID       `json:"app_id"`
+	UpdatedAt time.Time       `json:"updated_at"`
+	Data      json.RawMessage `json:"data"`
 }
 
 func (s *Server) HandlePostPref(w http.ResponseWriter, r *http.Request) {
@@ -38,25 +37,28 @@ func (s *Server) HandlePostPref(w http.ResponseWriter, r *http.Request) {
 		)
 		return
 	}
-	src := chi.URLParam(r, "src")
 
-	var newData any
-	if err := json.UnmarshalRead(r.Body, &newData); err != nil {
-		middlewares.SimpleHTTPError(
-			ctx, w, err, "Invalid Payload", http.StatusBadRequest,
-		)
+	var srcFilter *string = nil
+	if src := chi.URLParam(r, "src"); src != "" {
+		srcFilter = &src
+	}
+
+	app, err := s.appLogic.GetApp(ctx, aid)
+	if err != nil {
+		middlewares.HandleHTTPError(ctx, w, err)
 		return
 	}
 
-	var srcFilter *string = nil
-	if src != "" {
-		srcFilter = &src
+	payload, err := s.appLogic.ParsePayloadWithLimit(ctx, r.Body, app)
+	defer r.Body.Close()
+	if err != nil {
+		middlewares.HandleHTTPError(ctx, w, err)
+		return
 	}
-	encoded := bytes.NewBuffer(make([]byte, 0, r.ContentLength))
-
-	if err := json.MarshalWrite(encoded, newData); err != nil {
+	if !payload.IsValid() {
+		err := oops.FromContext(ctx).New("Invalid JSON payload")
 		middlewares.SimpleHTTPError(
-			ctx, w, err, "Unable to encode payload", http.StatusInternalServerError,
+			ctx, w, err, "Invalid Payload", http.StatusBadRequest,
 		)
 		return
 	}
@@ -64,7 +66,7 @@ func (s *Server) HandlePostPref(w http.ResponseWriter, r *http.Request) {
 	updated, err := s.appLogic.UpdatePref(ctx, &repos.PrefEntry{
 		UserID:  uid,
 		AppID:   aid,
-		Payload: encoded.String(),
+		Payload: payload.String(),
 	}, srcFilter)
 	if err != nil {
 		middlewares.SimpleHTTPError(
@@ -77,7 +79,7 @@ func (s *Server) HandlePostPref(w http.ResponseWriter, r *http.Request) {
 		UserID:    updated.UserID,
 		AppID:     updated.AppID,
 		UpdatedAt: updated.UpdatedAt,
-		Data:      nil,
+		Data:      payload,
 	})
 }
 
@@ -102,11 +104,12 @@ func (s *Server) HandleGetPerf(w http.ResponseWriter, r *http.Request) {
 		)
 		return
 	}
+	rawMsg := json.RawMessage(pref.Payload)
 	render.JSON(w, r, prefRspPayload{
 		UserID:    uid,
 		AppID:     aid,
 		UpdatedAt: pref.UpdatedAt,
-		Data:      pref.Payload,
+		Data:      rawMsg,
 	})
 }
 
