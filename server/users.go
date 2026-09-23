@@ -14,7 +14,7 @@ import (
 func (s *Server) HandleGetUser(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	uid := middlewares.GetUserID(ctx)
+	uid := s.auth.GetUserID(ctx)
 	oops.FromContext(ctx).Assert(uid != uuid.Nil())
 
 	user, err := s.appLogic.GetUser(ctx, uid)
@@ -30,7 +30,7 @@ func (s *Server) HandleGetUser(w http.ResponseWriter, r *http.Request) {
 func (s *Server) HandleAuthoriseUser(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	uid := middlewares.GetUserID(ctx)
+	uid := s.auth.GetUserID(ctx)
 	oops.FromContext(ctx).Assert(uid != uuid.Nil())
 
 	aid, err := uuid.Parse(chi.URLParam(r, "app"))
@@ -53,7 +53,7 @@ func (s *Server) HandleAuthoriseUser(w http.ResponseWriter, r *http.Request) {
 func (s *Server) HandleDeauthoriseUser(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	uid := middlewares.GetUserID(ctx)
+	uid := s.auth.GetUserID(ctx)
 	oops.FromContext(ctx).Assert(uid != uuid.Nil())
 
 	aid, err := uuid.Parse(chi.URLParam(r, "app"))
@@ -63,7 +63,7 @@ func (s *Server) HandleDeauthoriseUser(w http.ResponseWriter, r *http.Request) {
 		)
 		return
 	}
-	user, err := s.appLogic.DeauthoriseUserToApp(ctx, uid, aid)
+	user, err := s.appLogic.DeauthoriseUserFromApp(ctx, uid, aid)
 	if err != nil {
 		middlewares.SimpleHTTPError(
 			ctx, w, err, "Failed to deauthorise user to app", 0,
@@ -76,7 +76,7 @@ func (s *Server) HandleDeauthoriseUser(w http.ResponseWriter, r *http.Request) {
 func (s *Server) HandleDeleteUser(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	uid := middlewares.GetUserID(ctx)
+	uid := s.auth.GetUserID(ctx)
 	oops.FromContext(ctx).Assert(uid != uuid.Nil())
 
 	if err := s.appLogic.DeleteUser(ctx, uid); err != nil {

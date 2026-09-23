@@ -31,7 +31,7 @@ type appRspPayload struct {
 func (s *Server) HandleNewApp(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	uid := middlewares.GetUserID(ctx)
+	uid := s.auth.GetUserID(ctx)
 	oops.FromContext(ctx).Assert(uid != uuid.Nil())
 
 	payload := &appReqPayload{}
@@ -99,7 +99,7 @@ func (s *Server) HandleModifyApp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID := middlewares.GetUserID(ctx)
+	userID := s.auth.GetUserID(ctx)
 
 	req := &appReqPayload{}
 	if err := json.UnmarshalRead(r.Body, req); err != nil {

@@ -27,7 +27,7 @@ type prefRspPayload struct {
 func (s *Server) HandlePostPref(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	uid := middlewares.GetUserID(ctx)
+	uid := s.auth.GetUserID(ctx)
 	oops.FromContext(ctx).Assert(uid != uuid.Nil())
 
 	aid, err := uuid.Parse(chi.URLParam(r, "app"))
@@ -86,7 +86,7 @@ func (s *Server) HandlePostPref(w http.ResponseWriter, r *http.Request) {
 func (s *Server) HandleGetPerf(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	uid := middlewares.GetUserID(ctx)
+	uid := s.auth.GetUserID(ctx)
 	oops.FromContext(ctx).Assert(uid != uuid.Nil())
 
 	aid, err := uuid.Parse(chi.URLParam(r, "app"))
@@ -116,7 +116,7 @@ func (s *Server) HandleGetPerf(w http.ResponseWriter, r *http.Request) {
 func (s *Server) HandleDeletePref(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	uid := middlewares.GetUserID(ctx)
+	uid := s.auth.GetUserID(ctx)
 	oops.FromContext(ctx).Assert(uid != uuid.Nil())
 
 	aid, err := uuid.Parse(chi.URLParam(r, "app"))
@@ -144,7 +144,7 @@ func (s *Server) HandleStartNotification(w http.ResponseWriter, r *http.Request)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	uid := middlewares.GetUserID(ctx)
+	uid := s.auth.GetUserID(ctx)
 	oops.FromContext(ctx).Assert(uid != uuid.Nil())
 
 	aid, err := uuid.Parse(chi.URLParam(r, "app"))

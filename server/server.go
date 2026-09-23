@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"time"
+	"uuid"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -18,11 +19,19 @@ import (
 	"github.com/khwong-c/pref-syncs/tooling/di"
 )
 
+type Authenticator interface {
+	Middleware() func(http.Handler) http.Handler
+	UserContext(next http.Handler) http.Handler
+	IsUser(next http.Handler) http.Handler
+	IsAdmin(next http.Handler) http.Handler
+	GetUserID(ctx context.Context) uuid.UUID
+}
+
 type Server struct {
 	*http.Server
 	router   chi.Router
 	appLogic *features.AppLogic
-	auth     *middlewares.Authenticator
+	auth     Authenticator
 
 	shutdown context.CancelFunc
 }
@@ -44,7 +53,11 @@ func NewServer(inj do.Injector) (*Server, error) {
 		},
 		router:   r,
 		appLogic: di.InvokeOrProvide(inj, features.NewAppLogic),
-		auth:     middlewares.NewAuthenticator(inj, cfg),
+		auth: di.InvokeOrProvide[Authenticator](inj,
+			func(i do.Injector) (Authenticator, error) {
+				return middlewares.NewAuthenticator(i, cfg), nil
+			},
+		),
 
 		shutdown: shutdown,
 	}

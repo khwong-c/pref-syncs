@@ -124,7 +124,7 @@ func (a *Authenticator) UserContext(next http.Handler) http.Handler {
 func (a *Authenticator) IsUser(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		if GetUserInfo(ctx) == nil {
+		if a.GetUserInfo(ctx) == nil {
 			err := oops.FromContext(ctx).
 				New("Unauthorised")
 			SimpleHTTPError(
@@ -140,7 +140,7 @@ func (a *Authenticator) IsUser(next http.Handler) http.Handler {
 func (a *Authenticator) IsAdmin(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		info := GetUserInfo(ctx)
+		info := a.GetUserInfo(ctx)
 		isAdmin := info.UserID == fixedAdminID // TODO: Implement me
 		if !isAdmin {
 			err := oops.FromContext(ctx).
@@ -155,7 +155,7 @@ func (a *Authenticator) IsAdmin(next http.Handler) http.Handler {
 	})
 }
 
-func GetUserInfo(ctx context.Context) *UserInfoCtx {
+func (a *Authenticator) GetUserInfo(ctx context.Context) *UserInfoCtx {
 	userInfoCtx, ok := ctx.Value(userCtxKey{}).(*UserInfoCtx)
 	if !ok {
 		return nil
@@ -163,7 +163,7 @@ func GetUserInfo(ctx context.Context) *UserInfoCtx {
 	return userInfoCtx
 }
 
-func GetUserID(ctx context.Context) uuid.UUID {
+func (a *Authenticator) GetUserID(ctx context.Context) uuid.UUID {
 	userInfoCtx, ok := ctx.Value(userCtxKey{}).(*UserInfoCtx)
 	if !ok {
 		return uuid.Nil()
