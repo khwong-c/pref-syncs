@@ -3,8 +3,6 @@ package repos
 import (
 	"context"
 	"errors"
-	"fmt"
-	"net/http"
 	"time"
 	"uuid"
 
@@ -40,12 +38,10 @@ func (r *DataRepo) GetPreference(ctx context.Context, uid uuid.UUID, aid uuid.UU
 	entryFound, err := gorm.G[PrefEntry](tx).Where(prefEntry).Take(ctx)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			e := oops.
-				FromContext(ctx).
-				Public(fmt.Sprintf("preference not found: %s, %s", uid, aid)).
-				With(models.HTTPCodeCtx, http.StatusNotFound).
-				Wrap(err)
-			return nil, e
+			return nil, models.NewNotFoundErr(
+				ctx, err,
+				"preference not found: %s, %s", uid, aid,
+			)
 		}
 		return nil, oops.FromContext(ctx).Wrap(err)
 	}
@@ -65,12 +61,7 @@ func (r *DataRepo) DeletePreference(ctx context.Context, uid uuid.UUID, aid uuid
 			return oops.FromContext(ctx).Wrap(err)
 		}
 		if entryFound == 0 {
-			e := oops.
-				FromContext(ctx).
-				Public(fmt.Sprintf("preference not found: %s, %s", uid, aid)).
-				With(models.HTTPCodeCtx, http.StatusNotFound).
-				Wrap(err)
-			return e
+			return models.NewNotFoundErr(ctx, err, "preference not found: %s, %s", uid, aid)
 		}
 		_, err = gorm.G[PrefEntry](tx).Where(prefEntry).Delete(ctx)
 		return oops.FromContext(ctx).Wrap(err)

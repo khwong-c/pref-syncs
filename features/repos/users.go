@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
 	"uuid"
 
 	"github.com/samber/do/v2"
@@ -95,12 +94,10 @@ func (r *DataRepo) GetUser(ctx context.Context, id uuid.UUID) (*User, error) {
 		Take(ctx)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			e := oops.
-				FromContext(ctx).
-				Public(fmt.Sprintf("user not found: %s", id)).
-				With(models.HTTPCodeCtx, http.StatusNotFound).
-				Wrap(err)
-			return nil, e
+			return nil, models.NewNotFoundErr(
+				ctx, err,
+				"user not found: %s", id,
+			)
 		}
 		return nil, oops.FromContext(ctx).Wrap(err)
 	}
@@ -153,18 +150,21 @@ func (r *DataRepo) CreateUser(ctx context.Context, user *User) (*User, error) {
 
 func (r *DataRepo) DeleteUser(ctx context.Context, id uuid.UUID) error {
 	tx := r.getTxFromCtx(ctx)
-	rows, err := gorm.G[User](tx).Where(&User{ID: id}).Delete(ctx)
-	if err != nil {
-		return oops.FromContext(ctx).Wrap(err)
-	}
-	if rows == 0 {
-		return oops.
-			FromContext(ctx).
-			Public(fmt.Sprintf("user not found: %s", id)).
-			With(models.HTTPCodeCtx, http.StatusNotFound).
-			Wrap(err)
-	}
-	return nil
+	return tx.Transaction(func(tx *gorm.DB) error {
+		ctx = r.withTx(ctx, tx)
+		found, err := gorm.G[User](tx).Where(&User{ID: id}).Count(ctx, "*")
+		if err != nil {
+			return oops.FromContext(ctx).Wrap(err)
+		}
+		if found == 0 {
+			return models.NewNotFoundErr(ctx, nil, "user not found: %s", id)
+		}
+
+		if _, err := gorm.G[User](tx).Where(&User{ID: id}).Delete(ctx); err != nil {
+			return oops.FromContext(ctx).Wrap(err)
+		}
+		return nil
+	})
 }
 
 func (r *DataRepo) AuthorizeUserToApp(ctx context.Context, uid uuid.UUID, aid uuid.UUID) error {

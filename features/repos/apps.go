@@ -3,8 +3,6 @@ package repos
 import (
 	"context"
 	"errors"
-	"fmt"
-	"net/http"
 	"uuid"
 
 	"github.com/samber/oops"
@@ -19,12 +17,10 @@ func (r *DataRepo) GetApp(ctx context.Context, id uuid.UUID) (*App, error) {
 		Take(ctx)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			e := oops.
-				FromContext(ctx).
-				Public(fmt.Sprintf("app not found: %s", id)).
-				With(models.HTTPCodeCtx, http.StatusNotFound).
-				Wrap(err)
-			return nil, e
+			return nil, models.NewNotFoundErr(
+				ctx, err,
+				"app not found: %s", id,
+			)
 		}
 		return nil, oops.FromContext(ctx).Wrap(err)
 	}
@@ -32,7 +28,8 @@ func (r *DataRepo) GetApp(ctx context.Context, id uuid.UUID) (*App, error) {
 }
 
 func (r *DataRepo) CreateApp(ctx context.Context, app *App) (*App, error) {
-	if err := gorm.G[App](r.db).Create(ctx, app); err != nil {
+	tx := r.getTxFromCtx(ctx)
+	if err := gorm.G[App](tx).Create(ctx, app); err != nil {
 		return nil, oops.FromContext(ctx).Wrap(err)
 	}
 	return app, nil
@@ -66,11 +63,10 @@ func (r *DataRepo) ModifyApp(
 		return nil, oops.FromContext(ctx).Wrap(err)
 	}
 	if rows == 0 {
-		return nil, oops.
-			FromContext(ctx).
-			Public(fmt.Sprintf("App not found: %s", id)).
-			With(models.HTTPCodeCtx, http.StatusNotFound).
-			Wrap(err)
+		return nil, models.NewNotFoundErr(
+			ctx, err,
+			"app not found: %s", id,
+		)
 	}
 	return app, nil
 }
@@ -102,14 +98,12 @@ func (r *DataRepo) DeleteApp(ctx context.Context, id uuid.UUID) error {
 			return oops.FromContext(ctx).Wrap(err)
 		}
 		if rows == 0 {
-			return oops.
-				FromContext(ctx).
-				Public(fmt.Sprintf("App not found: %s", id)).
-				With(models.HTTPCodeCtx, http.StatusNotFound).
-				Wrap(err)
+			return models.NewNotFoundErr(
+				ctx, err,
+				"app not found: %s", id,
+			)
 		}
 		return nil
 	})
 	return err
-
 }

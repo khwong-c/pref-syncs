@@ -28,10 +28,10 @@ type AppUpsertReq struct {
 func (a *AppLogic) CreateApp(ctx context.Context, req *AppUpsertReq) (*repos.App, error) {
 	// Validate Fields
 	if req.Name == nil {
-		return nil, newBadReqErr(ctx, "name is required")
+		return nil, models.NewBadReqErr(ctx, nil, "name is required")
 	}
 	if req.Desc == nil {
-		return nil, newBadReqErr(ctx, "desc is required")
+		return nil, models.NewBadReqErr(ctx, nil, "desc is required")
 	}
 
 	// Fill the default values
@@ -44,10 +44,10 @@ func (a *AppLogic) CreateApp(ctx context.Context, req *AppUpsertReq) (*repos.App
 
 	// Validate App Options
 	if *req.MaxPayload != defaultMaxPayload {
-		return nil, newBadReqErr(ctx, "max payload must be %d", defaultMaxPayload)
+		return nil, models.NewBadReqErr(ctx, nil, "max payload must be %d", defaultMaxPayload)
 	}
 	if *req.MaxUser != defaultMaxUser {
-		return nil, newBadReqErr(ctx, "max user must be %d", defaultMaxUser)
+		return nil, models.NewBadReqErr(ctx, nil, "max user must be %d", defaultMaxUser)
 	}
 
 	newEntry := &repos.App{
@@ -82,16 +82,16 @@ func (a *AppLogic) ModifyApp(
 ) (*repos.App, error) {
 	// Validate Request
 	if req.Name != nil && *req.Name == "" {
-		return nil, newBadReqErr(ctx, "name cannot be empty")
+		return nil, models.NewBadReqErr(ctx, nil, "name cannot be empty")
 	}
 	if req.Desc != nil && *req.Desc == "" {
-		return nil, newBadReqErr(ctx, "desc cannot be empty")
+		return nil, models.NewBadReqErr(ctx, nil, "desc cannot be empty")
 	}
 	if req.MaxPayload != nil && *req.MaxPayload != defaultMaxPayload {
-		return nil, newBadReqErr(ctx, "max payload must be %d", defaultMaxPayload)
+		return nil, models.NewBadReqErr(ctx, nil, "max payload must be %d", defaultMaxPayload)
 	}
 	if req.MaxUser != nil && *req.MaxUser != defaultMaxUser {
-		return nil, newBadReqErr(ctx, "max user must be %d", defaultMaxUser)
+		return nil, models.NewBadReqErr(ctx, nil, "max user must be %d", defaultMaxUser)
 	}
 
 	// Check Ownership
