@@ -51,9 +51,17 @@ func (a *AppLogic) AuthoriseUserToApp(ctx context.Context, uid, appID uuid.UUID)
 	return a.dataRepo.GetUser(ctx, uid)
 }
 
-func (a *AppLogic) DeauthoriseUserToApp(ctx context.Context, uid uuid.UUID, appID uuid.UUID) (*repos.User, error) {
+func (a *AppLogic) DeauthoriseUserFromApp(ctx context.Context, uid uuid.UUID, appID uuid.UUID) (*repos.User, error) {
 	if err := a.dataRepo.DeauthorizeUserFromApp(ctx, uid, appID); err != nil {
 		return nil, err
 	}
 	return a.dataRepo.GetUser(ctx, uid)
+}
+
+func (a *AppLogic) PromoteUserToAdmin(ctx context.Context, id uuid.UUID) (*repos.User, error) {
+	user, err := a.dataRepo.PromoteUserToAdmin(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
 }

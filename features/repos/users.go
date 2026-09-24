@@ -52,37 +52,6 @@ func (r *DataRepo) InitDB() error {
 	); err != nil {
 		return oops.Wrap(err)
 	}
-	id1 := uuid.MustParse("01a0a690-d36b-7297-85d6-13ca9f415cf3")
-	if err := gorm.G[User](tx).Create(context.Background(), &User{
-		ID:           uuid.MustParse("01a0734e-795a-72bc-874b-9b90c41ddc8b"),
-		AuthProvider: "",
-		AuthUserID:   "",
-		Apps: []*App{
-			{
-				ID:   id1,
-				Name: "App 1",
-				Desc: "App 1",
-			},
-			{
-				ID:   uuid.NewV4(),
-				Name: "App 1",
-				Desc: "App 1",
-			},
-		},
-	}); err != nil {
-		return oops.Wrap(err)
-	}
-	if err := gorm.G[User](tx).Create(context.Background(), &User{
-		ID:           uuid.MustParse("01a08408-6237-7008-9508-263f5cf27759"),
-		AuthProvider: "",
-		AuthUserID:   "",
-		Apps: []*App{
-			{ID: id1},
-		},
-	}); err != nil {
-		return oops.Wrap(err)
-	}
-	//r.PutReference(context.Background(), uuid.MustParse("01a0734e-795a-72bc-874b-9b90c41ddc8b"), uuid.MustParse("01a08408-6237-7008-9508-263f5cf27759"), &User{})
 	return nil
 }
 
@@ -152,15 +121,13 @@ func (r *DataRepo) DeleteUser(ctx context.Context, id uuid.UUID) error {
 	tx := r.getTxFromCtx(ctx)
 	return tx.Transaction(func(tx *gorm.DB) error {
 		ctx = r.withTx(ctx, tx)
-		found, err := gorm.G[User](tx).Where(&User{ID: id}).Count(ctx, "*")
+		user, err := r.GetUser(ctx, id)
 		if err != nil {
-			return oops.FromContext(ctx).Wrap(err)
-		}
-		if found == 0 {
-			return models.NewNotFoundErr(ctx, nil, "user not found: %s", id)
+			return err
 		}
 
-		if _, err := gorm.G[User](tx).Where(&User{ID: id}).Delete(ctx); err != nil {
+		// Remove user.
+		if err := tx.Delete(&user).Error; err != nil {
 			return oops.FromContext(ctx).Wrap(err)
 		}
 		return nil
@@ -257,4 +224,31 @@ func (r *DataRepo) IsUserAuthorizedToApp(ctx context.Context, uid uuid.UUID, aid
 		return false, oops.FromContext(ctx).Wrap(err)
 	}
 	return count > 0, nil
+}
+
+func (r *DataRepo) PromoteUserToAdmin(ctx context.Context, uid uuid.UUID) (*User, error) {
+	tx := r.getTxFromCtx(ctx)
+	var user *User
+	err := tx.Transaction(func(tx *gorm.DB) error {
+		ctx = r.withTx(ctx, tx)
+
+		var err error
+		user, err = r.GetUser(ctx, uid)
+		if err != nil {
+			return err
+		}
+
+		user.IsAdmin = true
+		if _, err := gorm.G[*User](tx).Updates(ctx, user); err != nil {
+			return oops.
+				FromContext(ctx).
+				Public(fmt.Sprintf("Unable to promote user to admin: %s", uid)).
+				Wrap(err)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
 }
