@@ -10,8 +10,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	dochi "github.com/samber/do/http/chi/v2"
 	"github.com/samber/do/v2"
+	"github.com/samber/oops"
 
 	"github.com/khwong-c/pref-syncs/config"
 	"github.com/khwong-c/pref-syncs/features"
@@ -21,7 +21,7 @@ import (
 
 type Authenticator interface {
 	Middleware() func(http.Handler) http.Handler
-	UserContext(next http.Handler) http.Handler
+	UserContext(*config.Config) func(next http.Handler) http.Handler
 	IsUser(next http.Handler) http.Handler
 	IsAdmin(next http.Handler) http.Handler
 	GetUserID(ctx context.Context) uuid.UUID
@@ -42,6 +42,16 @@ func NewServer(inj do.Injector) (*Server, error) {
 	serverCtx, shutdown := context.WithCancel(context.Background())
 	r := chi.NewRouter()
 
+	// Loopback client for local IDP requests initiated by the server.
+	var localClient *http.Client
+	if cfg.IDP.Enable {
+		localClient = &http.Client{
+			Transport:     nil,
+			CheckRedirect: http.DefaultClient.CheckRedirect,
+			Timeout:       http.DefaultClient.Timeout,
+		}
+	}
+
 	s := &Server{
 		Server: &http.Server{
 			Addr:              fmt.Sprintf(":%d", cfg.Port),
@@ -55,18 +65,44 @@ func NewServer(inj do.Injector) (*Server, error) {
 		appLogic: di.InvokeOrProvide(inj, features.NewAppLogic),
 		auth: di.InvokeOrProvide[Authenticator](inj,
 			func(i do.Injector) (Authenticator, error) {
-				return middlewares.NewAuthenticator(i, cfg), nil
+				return middlewares.NewAuthenticator(i, cfg, localClient), nil
 			},
 		),
 
 		shutdown: shutdown,
 	}
 
+	var err error
+	r, err = s.CreateRoutes(r, cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	// r.Route("/auth/{provider}", func(r chi.Router) {
+	// 	r.Get("/login", newServer.HandleAuthLogin)
+	// 	r.Get("/callback", newServer.HandleAuthCallback)
+	// })
+
+	if cfg.IDP.Enable {
+		oops.Assert(localClient != nil)
+		localClient.Transport = &LocalTransport{
+			DefaultTransport: http.DefaultClient.Transport,
+			LocalRoutes: []string{
+				fmt.Sprintf("localhost:%d", cfg.Port),
+				fmt.Sprintf("127.0.0.1:%d", cfg.Port),
+			},
+			Handler: s.Handler,
+		}
+	}
+
+	return s, nil
+}
+
+func (s *Server) CreateRoutes(r *chi.Mux, cfg *config.Config) (*chi.Mux, error) {
 	r.Use(middleware.StripSlashes)
 	r.Use(middleware.NoCache)
 	r.Use(middlewares.ErrorBuilder)
 
-	dochi.Use(r, "/debug/di", inj)
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte("Hello World"))
 	})
@@ -83,10 +119,9 @@ func NewServer(inj do.Injector) (*Server, error) {
 		r.Mount(cfg.IDP.Path, oidpHandler)
 		r.Get(callbackPath, createLocalIDPCallbackHandler(cfg, callbackPath))
 	}
-
 	r.Group(func(r chi.Router) {
 		r.Use(s.auth.Middleware())
-		r.Use(s.auth.UserContext)
+		r.Use(s.auth.UserContext(cfg))
 		r.With(s.auth.IsUser).Get("/app/{app}", s.HandleGetApp)
 		r.Route("/app", func(r chi.Router) {
 			r.Use(s.auth.IsUser)
@@ -125,13 +160,7 @@ func NewServer(inj do.Injector) (*Server, error) {
 			r.Get("/notification/{app}/from/{src}", s.HandleStartNotification)
 		})
 	})
-
-	// r.Route("/auth/{provider}", func(r chi.Router) {
-	// 	r.Get("/login", newServer.HandleAuthLogin)
-	// 	r.Get("/callback", newServer.HandleAuthCallback)
-	// })
-
-	return s, nil
+	return r, nil
 }
 
 func (s *Server) Shutdown() {

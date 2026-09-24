@@ -14,6 +14,7 @@ import (
 
 	"github.com/khwong-c/pref-syncs/config"
 	"github.com/khwong-c/pref-syncs/features"
+	"github.com/khwong-c/pref-syncs/models"
 	"github.com/khwong-c/pref-syncs/tooling"
 	"github.com/khwong-c/pref-syncs/tooling/di"
 )
@@ -39,15 +40,27 @@ type Authenticator struct {
 	middleware func(http.Handler) http.Handler
 }
 
-func NewAuthenticator(injector do.Injector, cfg *config.Config) *Authenticator {
-	validIssuers := []string{}
-	validAudiences := []string{}
+func NewAuthenticator(injector do.Injector, cfg *config.Config, localClient *http.Client) *Authenticator {
+	validIssuers := []string{
+		"https://FAKE.URL/STUB",
+	}
+	validAudiences := []string{
+		"https://FAKE.URL/STUB",
+	}
+	providerOpts := make([]jwks.MultiIssuerProviderOption, 0, 1)
+	localIssuer := fmt.Sprintf("http://127.0.0.1:%d%s", cfg.Port, cfg.IDP.Path)
 	if cfg.IDP.Enable {
-		validIssuers = append(validIssuers, fmt.Sprintf("http://127.0.0.1:%d%s", cfg.Port, cfg.IDP.Path))
-		validAudiences = append(validAudiences, fmt.Sprintf("http://127.0.0.1:%d%s", cfg.Port, cfg.IDP.Path))
+		validIssuers = append(validIssuers, localIssuer)
+		validAudiences = append(validAudiences, localIssuer)
+		if localClient != nil {
+			providerOpts = append(
+				providerOpts,
+				jwks.WithMultiIssuerHTTPClient(localClient),
+			)
+		}
 	}
 
-	providers := tooling.Must(jwks.NewMultiIssuerProvider())
+	providers := tooling.Must(jwks.NewMultiIssuerProvider(providerOpts...))
 	tokenValidator := tooling.Must(validator.New(
 		validator.WithKeyFunc(providers.KeyFunc),
 		validator.WithAlgorithms([]validator.SignatureAlgorithm{
@@ -87,39 +100,72 @@ func (a *Authenticator) Middleware() func(http.Handler) http.Handler {
 	return a.middleware
 }
 
-func (a *Authenticator) UserContext(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		if !jwtmiddleware.HasClaims(ctx) {
-			next.ServeHTTP(w, r)
-			return
-		}
-		claims, err := jwtmiddleware.GetClaims[*validator.ValidatedClaims](ctx)
-		if err != nil {
-			// Shouldn't occur.
-			SimpleHTTPError(
-				ctx, w, oops.FromContext(ctx).Wrap(err),
-				"Internal Server Error", http.StatusInternalServerError,
+func (a *Authenticator) UserContext(cfg *config.Config) func(http.Handler) http.Handler {
+	userCtxMiddleware := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx := r.Context()
+			if !jwtmiddleware.HasClaims(ctx) {
+				next.ServeHTTP(w, r)
+				return
+			}
+			claims, err := jwtmiddleware.GetClaims[*validator.ValidatedClaims](ctx)
+			if err != nil {
+				// Shouldn't occur.
+				SimpleHTTPError(
+					ctx, w, oops.FromContext(ctx).Wrap(err),
+					"Internal Server Error", http.StatusInternalServerError,
+				)
+			}
+			user, err := a.appLogic.GetUserByIssuer(
+				ctx,
+				claims.RegisteredClaims.Issuer,
+				claims.RegisteredClaims.Subject,
 			)
-		}
-		user, err := a.appLogic.GetUserByIssuer(
-			ctx,
-			claims.RegisteredClaims.Issuer,
-			claims.RegisteredClaims.Subject,
-		)
-		if err != nil {
-			SimpleHTTPError(
-				ctx, w, oops.FromContext(ctx).Wrap(err),
-				"Internal Server Error", http.StatusInternalServerError,
-			)
-		}
-		ctx = context.WithValue(ctx, userCtxKey{}, &UserInfoCtx{
-			Issuer:           user.AuthProvider,
-			UserIDFromIssuer: user.AuthUserID,
-			UserID:           user.ID,
+			if err != nil {
+				SimpleHTTPError(
+					ctx, w, oops.FromContext(ctx).Wrap(err),
+					"Internal Server Error", http.StatusInternalServerError,
+				)
+			}
+			ctx = context.WithValue(ctx, userCtxKey{}, &UserInfoCtx{
+				Issuer:  user.AuthProvider,
+				Subject: user.AuthUserID,
+				ID:      user.ID,
+				IsAdmin: user.IsAdmin,
+			})
+			next.ServeHTTP(w, r.WithContext(ctx))
 		})
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
+	}
+	if !cfg.IDP.Enable {
+		return userCtxMiddleware
+	}
+
+	// Promoting Specific Local User to Admin when Local IDP is enabled.
+	localIssuer := fmt.Sprintf("http://127.0.0.1:%d%s", cfg.Port, cfg.IDP.Path)
+	promotionMiddleware := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx := r.Context()
+			if !jwtmiddleware.HasClaims(ctx) {
+				next.ServeHTTP(w, r)
+				return
+			}
+			u := a.GetUserInfo(ctx)
+			if u != nil && !u.IsAdmin &&
+				(u.Issuer == localIssuer) &&
+				(u.Subject == models.StubClientService) {
+				if _, err := a.appLogic.PromoteUserToAdmin(ctx, u.ID); err != nil {
+					HandleHTTPError(ctx, w, err)
+					return
+				}
+				u.IsAdmin = true
+			}
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+
+	return func(next http.Handler) http.Handler {
+		return userCtxMiddleware(promotionMiddleware(next))
+	}
 }
 
 func (a *Authenticator) IsUser(next http.Handler) http.Handler {
@@ -142,8 +188,7 @@ func (a *Authenticator) IsAdmin(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		info := a.GetUserInfo(ctx)
-		isAdmin := info.UserID == fixedAdminID // TODO: Implement me
-		if !isAdmin {
+		if info == nil || !info.IsAdmin {
 			err := oops.FromContext(ctx).
 				New("Unauthorized")
 			SimpleHTTPError(
@@ -169,5 +214,5 @@ func (a *Authenticator) GetUserID(ctx context.Context) uuid.UUID {
 	if !ok {
 		return uuid.Nil()
 	}
-	return userInfoCtx.UserID
+	return userInfoCtx.ID
 }
