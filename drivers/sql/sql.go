@@ -52,22 +52,36 @@ func (j *JSONType) Value() (driver.Value, error) {
 
 // NewSQLite constructs a file-based SQLite gorm.DB connection.
 func NewSQLite(file string) (*gorm.DB, error) {
-	return gorm.Open(
+	db, err := gorm.Open(
 		sqlite.Open(file),
 		&gorm.Config{
 			PrepareStmt: true,
 		},
 	)
+	if err != nil {
+		return nil, err
+	}
+	if err := db.Exec("PRAGMA foreign_keys = ON;").Error; err != nil {
+		return nil, err
+	}
+	return db, nil
 }
 
 // NewInMemorySQLite constructs an in-memory SQLite gorm.DB connection.
 func NewInMemorySQLite(do.Injector) (*gorm.DB, error) {
-	return gorm.Open(
+	db, err := gorm.Open(
 		sqlite.Open(generateInMemDatabaseDSN()),
 		&gorm.Config{
 			PrepareStmt: true,
 		},
 	)
+	if err != nil {
+		return nil, err
+	}
+	if err := db.Exec("PRAGMA foreign_keys = ON;").Error; err != nil {
+		return nil, err
+	}
+	return db, nil
 }
 
 func generateInMemDatabaseDSN() string {
