@@ -2,19 +2,20 @@
 package tests
 
 import (
-	"net/http"
-
 	"github.com/khwong-c/httptestclient"
 
 	"github.com/khwong-c/pref-syncs/server"
 	"github.com/khwong-c/pref-syncs/tests/client"
 )
 
-func createClients(svr *server.Server) (*client.Client, *http.Client) {
-	httpClient := httptestclient.New(svr.Handler)
+func createAPIClient(svr *server.Server, opts ...client.ClientOption) *client.Client {
+	opts = append(
+		opts,
+		client.WithHTTPClient(httptestclient.New(svr.Handler)),
+	)
 	c := client.NewClient(
 		"http://localhost:7086",
-		client.WithHTTPClient(httpClient),
+		opts...,
 	)
-	return c, httpClient
+	return c
 }

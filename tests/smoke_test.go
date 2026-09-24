@@ -1,7 +1,6 @@
 package tests
 
 import (
-	"context"
 	"errors"
 	"net/http"
 	"testing"
@@ -9,12 +8,10 @@ import (
 	"github.com/khwong-c/httptestclient"
 	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/suite"
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/clientcredentials"
-	"gorm.io/gorm"
 
 	"github.com/khwong-c/pref-syncs/config"
 	"github.com/khwong-c/pref-syncs/drivers/sql"
+	"github.com/khwong-c/pref-syncs/models"
 	"github.com/khwong-c/pref-syncs/server"
 	"github.com/khwong-c/pref-syncs/tests/client"
 	"github.com/khwong-c/pref-syncs/tooling/di"
@@ -22,10 +19,6 @@ import (
 
 type SmokeTestSuite struct {
 	suite.Suite
-	inj    do.Injector
-	server *server.Server
-	db     *gorm.DB
-	cfg    *config.Config
 }
 
 func (s *SmokeTestSuite) TestSmoke() {
@@ -38,8 +31,8 @@ func (s *SmokeTestSuite) TestSmoke() {
 			httptestclient.New(svr.Handler),
 		),
 	)
-	if rsp, err := c.GetRoot(context.Background()); s.NoError(err) && s.NotNil(rsp) {
-		s.Equal(*rsp, "Hello World")
+	if rsp, err := c.GetRoot(s.T().Context()); s.NoError(err) && s.NotNil(rsp) {
+		s.Equal("Hello World", *rsp)
 	}
 }
 
@@ -72,40 +65,23 @@ func (s *SmokeTestSuite) TestIDPEndpoints() {
 			cfg.IDP.Enable = tc.enable
 			svr := di.InvokeOrProvide(inj, server.NewServer)
 
-			c, httpClient := createClients(svr)
+			httpClient := httptestclient.New(svr.Handler)
+			c := createAPIClient(svr)
 
 			// Check if Auth Callback exists
-			_, err := c.GetAuthCallback(context.Background(), client.GetAuthCallbackParams{})
+			_, err := c.GetAuthCallback(s.T().Context(), client.GetAuthCallbackParams{})
 			if err, ok := errors.AsType[*client.APIError](err); s.True(ok) {
-				s.Equal(err.StatusCode, tc.cbResp)
+				s.Equal(tc.cbResp, err.StatusCode)
 			}
 
 			// Check if OIDC Well-Known Host Introspection Endpoint exists
 			if rsp, err := httpClient.Get(
 				"/idp/.well-known/openid-configuration",
 			); s.NoError(err) {
-				s.Equal(rsp.StatusCode, tc.oidcResp)
+				s.Equal(tc.oidcResp, rsp.StatusCode)
 			}
 		})
 	}
-}
-
-func getClientCredentialsToken(
-	ctx context.Context,
-	httpClient *http.Client,
-	clientID string,
-	clientSecret string,
-	scopes []string,
-) (*oauth2.Token, error) {
-	oauthConfig := &clientcredentials.Config{
-		ClientID:     clientID,
-		ClientSecret: clientSecret,
-		TokenURL:     "/idp/oidc/token",
-		Scopes:       scopes,
-		AuthStyle:    oauth2.AuthStyleInHeader,
-	}
-	ctx = context.WithValue(ctx, oauth2.HTTPClient, httpClient)
-	return oauthConfig.Token(ctx)
 }
 
 func (s *SmokeTestSuite) TestOAuth2ClientCredentials() {
@@ -113,9 +89,10 @@ func (s *SmokeTestSuite) TestOAuth2ClientCredentials() {
 	_ = di.InvokeOrProvide(inj, sql.NewInMemorySQLite)
 	cfg := di.InvokeOrProvide(inj, config.LoadConfig)
 	cfg.IDP.Enable = true
+	cfg.IDP.Path = "/idp"
 	svr := di.InvokeOrProvide(inj, server.NewServer)
 
-	_, httpClient := createClients(svr)
+	httpClient := httptestclient.New(svr.Handler)
 
 	tests := []struct {
 		name         string
@@ -125,22 +102,22 @@ func (s *SmokeTestSuite) TestOAuth2ClientCredentials() {
 	}{
 		{
 			name:         "public-rp-client",
-			clientID:     server.StubClientPublic,
-			clientSecret: server.StubClientSecret,
+			clientID:     models.StubClientPublic,
+			clientSecret: models.StubClientSecret,
 			scopes:       []string{"profile", "email"},
 		},
 		{
 			name:         "service-client",
-			clientID:     server.StubClientService,
-			clientSecret: server.StubClientSecret,
-			scopes:       []string{server.StubScope},
+			clientID:     models.StubClientService,
+			clientSecret: models.StubClientSecret,
+			scopes:       []string{models.StubScope},
 		},
 	}
 
 	for _, tc := range tests {
 		s.Run(tc.name, func() {
 			if token, err := getClientCredentialsToken(
-				context.Background(),
+				s.T().Context(),
 				httpClient,
 				tc.clientID,
 				tc.clientSecret,

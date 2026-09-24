@@ -16,10 +16,10 @@ type MockAuthenticator struct {
 	*middlewares.Authenticator
 }
 
-func NewMockAuthenticator(inj do.Injector) *MockAuthenticator {
+func NewAlwaysPassAuthenticator(inj do.Injector) *MockAuthenticator {
 	cfg := di.InvokeOrProvide(inj, config.LoadConfig)
 	return &MockAuthenticator{
-		Authenticator: middlewares.NewAuthenticator(inj, cfg),
+		Authenticator: middlewares.NewAuthenticator(inj, cfg, nil),
 	}
 }
 
