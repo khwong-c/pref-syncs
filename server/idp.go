@@ -18,16 +18,9 @@ import (
 	"golang.org/x/oauth2"
 
 	"github.com/khwong-c/pref-syncs/config"
+	"github.com/khwong-c/pref-syncs/models"
 	"github.com/khwong-c/pref-syncs/server/middlewares"
 	"github.com/khwong-c/pref-syncs/tooling"
-)
-
-const (
-	StubScope         = "api:stub"
-	StubClientPublic  = "stub-client-rp"
-	StubClientService = "stub-client-service"
-	StubClientSecret  = "stub-client-secret" //nolint:gosec
-	StubRootSubject   = "root-user"
 )
 
 func createLocalIDP(cfg *config.Config, cbPath string) (http.Handler, error) {
@@ -40,7 +33,7 @@ func createLocalIDP(cfg *config.Config, cbPath string) (http.Handler, error) {
 	// Create storage and seed the storage with a default user.
 	st := inmem.New()
 	st.PutUserWithPassword(context.Background(), &store.User{
-		Subject: StubRootSubject,
+		Subject: models.StubRootSubject,
 		Claims:  map[string]any{"name": "Root User"},
 	},
 		cfg.IDP.User,
@@ -61,16 +54,16 @@ func createLocalIDP(cfg *config.Config, cbPath string) (http.Handler, error) {
 			Primary: op.PrimaryPassword{Store: st.UserPasswords()},
 		}),
 		op.WithScope(
-			op.PublicScope(StubScope, "Stub Scope for testing"),
+			op.PublicScope(models.StubScope, "Stub Scope for testing"),
 		),
 		op.WithFirstPartyClients(
-			StubClientPublic,
-			StubClientService,
+			models.StubClientPublic,
+			models.StubClientService,
 		),
 		op.WithStaticClients(
 			op.ConfidentialClient{
-				ID:         StubClientPublic,
-				Secret:     StubClientSecret,
+				ID:         models.StubClientPublic,
+				Secret:     models.StubClientSecret,
 				AuthMethod: op.AuthClientSecretBasic,
 				RedirectURIs: []string{
 					fmt.Sprintf("http://127.0.0.1:%d%s", cfg.Port, cbPath),
@@ -84,15 +77,15 @@ func createLocalIDP(cfg *config.Config, cbPath string) (http.Handler, error) {
 				Scopes: []string{"openid", "profile", "email"},
 			},
 			op.ConfidentialClient{
-				ID:         StubClientService,
-				Secret:     StubClientSecret,
+				ID:         models.StubClientService,
+				Secret:     models.StubClientSecret,
 				AuthMethod: op.AuthClientSecretBasic,
 				RedirectURIs: []string{
 					fmt.Sprintf("http://127.0.0.1:%d%s", cfg.Port, cbPath),
 					fmt.Sprintf("http://127.0.0.1:%d", cfg.Port),
 				},
 				GrantTypes: []string{"client_credentials"},
-				Scopes:     []string{StubScope},
+				Scopes:     []string{models.StubScope},
 			},
 		),
 
@@ -125,8 +118,8 @@ func createLocalIDPCallbackHandler(cfg *config.Config, cbPath string) http.Handl
 		}
 
 		oauthConfig := &oauth2.Config{
-			ClientID:     StubClientPublic,
-			ClientSecret: StubClientSecret,
+			ClientID:     models.StubClientPublic,
+			ClientSecret: models.StubClientSecret,
 			Scopes:       []string{"openid"},
 			Endpoint: oauth2.Endpoint{
 				AuthURL:   fmt.Sprintf("http://127.0.0.1:%d%s/oidc/auth", cfg.Port, cfg.IDP.Path),

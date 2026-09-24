@@ -26,9 +26,10 @@ var (
 type userCtxKey struct{}
 
 type UserInfoCtx struct {
-	Issuer           string
-	UserIDFromIssuer string
-	UserID           uuid.UUID
+	ID      uuid.UUID
+	Issuer  string
+	Subject string
+	IsAdmin bool
 }
 
 type Authenticator struct {
