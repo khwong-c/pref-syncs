@@ -13,23 +13,6 @@ import (
 	"time"
 )
 
-// DefaultBaseURL is the server this API declares first, with every template
-// variable at its default value.
-const DefaultBaseURL = "https://localhost:7086"
-
-// ServerURL builds the URL of the server this API declares first, substituting
-// its template variables. An empty argument takes that variable's default.
-//
-// port defaults to 7086.
-func ServerURL(port string) string {
-	url := "https://localhost:{port}"
-	if port == "" {
-		port = "7086"
-	}
-	url = strings.ReplaceAll(url, "{port}", port)
-	return url
-}
-
 // Client is an API client for Pref Syncs API.
 type Client struct {
 	baseURL     string

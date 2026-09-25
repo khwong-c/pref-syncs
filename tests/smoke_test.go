@@ -1,7 +1,6 @@
 package tests
 
 import (
-	"errors"
 	"net/http"
 	"testing"
 
@@ -66,12 +65,11 @@ func (s *SmokeTestSuite) TestIDPEndpoints() {
 			svr := di.InvokeOrProvide(inj, server.NewServer)
 
 			httpClient := httptestclient.New(svr.Handler)
-			c := createAPIClient(svr)
-
 			// Check if Auth Callback exists
-			_, err := c.GetAuthCallback(s.T().Context(), client.GetAuthCallbackParams{})
-			if err, ok := errors.AsType[*client.APIError](err); s.True(ok) {
-				s.Equal(tc.cbResp, err.StatusCode)
+			if rsp, err := httpClient.Get(
+				"/auth-cb",
+			); s.NoError(err) {
+				s.Equal(tc.cbResp, rsp.StatusCode)
 			}
 
 			// Check if OIDC Well-Known Host Introspection Endpoint exists

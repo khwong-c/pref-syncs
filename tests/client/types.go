@@ -6,56 +6,47 @@ import (
 	"time"
 )
 
-// Error - Standard error response shape produced by `server/middlewares/errors.go`.
-type Error struct {
-	Error   bool   `json:"error"`
-	Message string `json:"message"`
-}
-
-// SuccessResponse - Generic success acknowledgement returned by delete operations.
-type SuccessResponse struct {
-	Success bool `json:"success"`
-}
-
-// AppUpsertRequest - Request body for creating or modifying an app (`server/apps.go: appReqPayload`). All fields are optional pointers server-side; omitted fields are left unchanged on modify.
-type AppUpsertRequest struct {
+type AppRequest struct {
 	Name       *string `json:"name,omitempty"`
 	Desc       *string `json:"desc,omitempty"`
 	MaxPayload *int64  `json:"max_payload,omitempty"`
 	MaxUser    *int64  `json:"max_user,omitempty"`
 }
 
-// App - App record (`server/apps.go: appRspPayload`).
-type App struct {
-	ID         string `json:"id"`
-	Name       string `json:"name"`
-	Desc       string `json:"desc"`
-	MaxPayload int64  `json:"max_payload"`
-	MaxUser    int64  `json:"max_user"`
+type AppResponse struct {
+	ID         *string `json:"id,omitempty"`
+	Name       *string `json:"name,omitempty"`
+	Desc       *string `json:"desc,omitempty"`
+	MaxPayload *int64  `json:"max_payload,omitempty"`
+	MaxUser    *int64  `json:"max_user,omitempty"`
 }
 
-// User - User record. Fields are inferred from usage in `server/middlewares/auth.go` (`user.ID`, `user.AuthProvider`, `user.AuthUserID`); the concrete type and its JSON tags are defined outside `server/` and could not be confirmed. Additional fields may exist on the real type.
-type User struct {
-	ID string `json:"id"`
-	// Inferred field name; unconfirmed JSON tag.
-	AuthProvider *string `json:"auth_provider,omitempty"`
-	// Inferred field name; unconfirmed JSON tag.
-	AuthUserID *string `json:"auth_user_id,omitempty"`
+type UserResponse struct {
+	ID           *string       `json:"id,omitempty"`
+	AuthProvider *string       `json:"auth_provider,omitempty"`
+	AuthSub      *string       `json:"auth_sub,omitempty"`
+	Apps         []AppResponse `json:"apps,omitempty"`
 }
 
-// Preference - Preference record (`server/preferences.go: prefRspPayload`).
-type Preference struct {
-	UserID    string    `json:"user_id"`
-	AppID     string    `json:"app_id"`
-	UpdatedAt time.Time `json:"updated_at"`
-	// On `GET`, the raw stored payload string. On `POST`, always `null`.
-	Data any `json:"data,omitempty"`
+type PrefResponse struct {
+	UserID    *string    `json:"user_id,omitempty"`
+	AppID     *string    `json:"app_id,omitempty"`
+	UpdatedAt *time.Time `json:"updated_at,omitempty"`
+	// Arbitrary JSON preference payload.
+	Data map[string]any `json:"data,omitempty"`
 }
 
-// OAuthToken - Raw `golang.org/x/oauth2.Token` struct returned verbatim by `server/idp.go`'s callback handler.
-type OAuthToken struct {
-	AccessToken  *string    `json:"access_token,omitempty"`
-	TokenType    *string    `json:"token_type,omitempty"`
-	RefreshToken *string    `json:"refresh_token,omitempty"`
-	Expiry       *time.Time `json:"expiry,omitempty"`
+type Notification struct {
+	User *string `json:"User,omitempty"`
+	App  *string `json:"App,omitempty"`
+	Src  *string `json:"Src,omitempty"`
+}
+
+type SuccessResponse struct {
+	Success *bool `json:"success,omitempty"`
+}
+
+type ErrorResponse struct {
+	Error   *bool   `json:"error,omitempty"`
+	Message *string `json:"message,omitempty"`
 }

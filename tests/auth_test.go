@@ -158,7 +158,7 @@ func (s *AuthTestSuite) TestIsAdminProtector() {
 	for _, tc := range tests {
 		s.Run(tc.name, func() {
 			rsp, err := tc.c.CreateApp(s.T().Context(),
-				client.AppUpsertRequest{
+				client.AppRequest{
 					Name: new("AppName"),
 					Desc: new("AppDesc"),
 				},

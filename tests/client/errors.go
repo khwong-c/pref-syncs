@@ -61,29 +61,29 @@ func (e *APIError) Is(target error) bool {
 	return e.StatusCode == t.StatusCode
 }
 
-// ErrorResponse wraps an APIError with a parsed Error body.
-type ErrorResponse struct {
+// ErrorResponseResponse wraps an APIError with a parsed ErrorResponse body.
+type ErrorResponseResponse struct {
 	*APIError
-	Detail Error
+	Detail ErrorResponse
 }
 
-func (e *ErrorResponse) Error() string {
-	if e.Detail.Message != "" {
-		return fmt.Sprintf("API error %s: %s", e.statusLabel(), e.Detail.Message)
+func (e *ErrorResponseResponse) Error() string {
+	if e.Detail.Message != nil && *e.Detail.Message != "" {
+		return fmt.Sprintf("API error %s: %s", e.statusLabel(), *e.Detail.Message)
 	}
 	return e.APIError.Error()
 }
 
-func (e *ErrorResponse) Unwrap() error {
+func (e *ErrorResponseResponse) Unwrap() error {
 	return e.APIError
 }
 
-func parseErrorResponse(err error) error {
+func parseErrorResponseResponse(err error) error {
 	var apiErr *APIError
 	if !errors.As(err, &apiErr) || len(apiErr.Body) == 0 {
 		return err
 	}
-	resp := &ErrorResponse{APIError: apiErr}
+	resp := &ErrorResponseResponse{APIError: apiErr}
 	if json.Unmarshal(apiErr.Body, &resp.Detail) == nil {
 		return resp
 	}
