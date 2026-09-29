@@ -8,8 +8,24 @@ import (
 	"github.com/go-chi/render"
 	"github.com/samber/oops"
 
+	"github.com/khwong-c/pref-syncs/features/repos"
 	"github.com/khwong-c/pref-syncs/server/middlewares"
 )
+
+type UserResponse struct {
+	ID           uuid.UUID    `json:"id"`
+	AuthProvider string       `json:"auth_provider"`
+	AuthSub      string       `json:"auth_sub"`
+	Apps         []*repos.App `json:"apps"`
+}
+
+func (u *UserResponse) FromRepoEntry(user *repos.User) *UserResponse {
+	u.Apps = user.Apps
+	u.AuthSub = user.AuthSubject
+	u.AuthProvider = user.AuthProvider
+	u.Apps = user.Apps
+	return u
+}
 
 func (s *Server) HandleGetUser(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
