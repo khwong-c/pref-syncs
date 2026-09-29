@@ -24,7 +24,8 @@ func (s *Server) HandleGetUser(w http.ResponseWriter, r *http.Request) {
 		)
 		return
 	}
-	render.JSON(w, r, user)
+	rsp := (&UserResponse{}).FromRepoEntry(user)
+	render.JSON(w, r, rsp)
 }
 
 func (s *Server) HandleAuthoriseUser(w http.ResponseWriter, r *http.Request) {
@@ -47,7 +48,8 @@ func (s *Server) HandleAuthoriseUser(w http.ResponseWriter, r *http.Request) {
 		)
 		return
 	}
-	render.JSON(w, r, user)
+	rsp := (&UserResponse{}).FromRepoEntry(user)
+	render.JSON(w, r, rsp)
 }
 
 func (s *Server) HandleDeauthoriseUser(w http.ResponseWriter, r *http.Request) {
@@ -70,7 +72,8 @@ func (s *Server) HandleDeauthoriseUser(w http.ResponseWriter, r *http.Request) {
 		)
 		return
 	}
-	render.JSON(w, r, user)
+	rsp := (&UserResponse{}).FromRepoEntry(user)
+	render.JSON(w, r, rsp)
 }
 
 func (s *Server) HandleDeleteUser(w http.ResponseWriter, r *http.Request) {

@@ -19,11 +19,6 @@ import (
 	"github.com/khwong-c/pref-syncs/tooling/di"
 )
 
-// TODO: Implement This.
-var (
-	fixedAdminID = uuid.MustParse("01a08408-6237-7008-9508-263f5cf27759")
-)
-
 type userCtxKey struct{}
 
 type UserInfoCtx struct {
@@ -129,7 +124,7 @@ func (a *Authenticator) UserContext(cfg *config.Config) func(http.Handler) http.
 			}
 			ctx = context.WithValue(ctx, userCtxKey{}, &UserInfoCtx{
 				Issuer:  user.AuthProvider,
-				Subject: user.AuthUserID,
+				Subject: user.AuthSubject,
 				ID:      user.ID,
 				IsAdmin: user.IsAdmin,
 			})

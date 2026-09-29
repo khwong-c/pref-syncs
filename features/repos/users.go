@@ -81,7 +81,7 @@ func (r *DataRepo) GetOrCreateUser(ctx context.Context, issuer string, subject s
 		userRecord, err := gorm.G[User](tx).
 			Where(&User{
 				AuthProvider: issuer,
-				AuthUserID:   subject,
+				AuthSubject:  subject,
 			}).
 			Take(ctx)
 		if err == nil {
@@ -95,7 +95,7 @@ func (r *DataRepo) GetOrCreateUser(ctx context.Context, issuer string, subject s
 		user = &User{
 			ID:           uuid.NewV7(),
 			AuthProvider: issuer,
-			AuthUserID:   subject,
+			AuthSubject:  subject,
 		}
 		err = gorm.G[User](tx).Create(ctx, user)
 		if err != nil {

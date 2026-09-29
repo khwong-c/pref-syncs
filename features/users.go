@@ -27,7 +27,7 @@ func (a *AppLogic) CreateUser(ctx context.Context, user *repos.User) (*repos.Use
 	newUser := &repos.User{
 		ID:           uuid.NewV7(),
 		AuthProvider: user.AuthProvider,
-		AuthUserID:   user.AuthUserID,
+		AuthSubject:  user.AuthSubject,
 	}
 	newUser, err := a.dataRepo.CreateUser(ctx, newUser)
 	if err != nil {
