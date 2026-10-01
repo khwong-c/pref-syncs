@@ -4,79 +4,69 @@ package client
 
 import (
 	"context"
-	"net/url"
 )
 
-// GetRoot - Health check / root endpoint.
+// GetRoot - Health check
+//
+// Returns a simple greeting to confirm the server is running. No authentication is required.
 func (c *Client) GetRoot(ctx context.Context) (*string, error) {
 
 	path := "/"
 
 	var result string
-	if err := c.do(ctx, "GET", path, nil, "", &result, "text/plain", false); err != nil {
+	if err := c.do(ctx, "GET", path, nil, "", &result, "text/plain", true); err != nil {
 		return nil, err
 	}
 	return &result, nil
 }
 
-// GetAuthCallbackParams contains the parameters for the GetAuthCallback operation.
-// Required parameters are value fields; optional parameters are pointers.
-type GetAuthCallbackParams struct {
-	// Authorization code issued by the embedded IDP.
-	Code string `json:"code"`
-}
-
-// GetAuthCallback - OAuth2 authorization code callback for the embedded local IDP.
+// CreateApp - Create an app
 //
-// Only mounted when `IDP.Enable` is true in configuration (`server/server.go`, `server/idp.go`). Exchanges the `code` query parameter for a token against the embedded IDP's token endpoint and returns the raw `golang.org/x/oauth2.Token` response. Intended for local development/testing only.
-func (c *Client) GetAuthCallback(ctx context.Context, params GetAuthCallbackParams) (*OAuthToken, error) {
+// Creates a new app owned by the authenticated user. Requires an authenticated admin user.
+func (c *Client) CreateApp(ctx context.Context, body AppRequest) (*AppResponse, error) {
 
-	path := "/auth-cb"
-	queryValues := url.Values{}
-	addQueryParam(queryValues, "code", "form", true, params.Code)
+	path := "/app"
 
-	if len(queryValues) > 0 {
-		path += "?" + encodeQuery(queryValues)
-	}
-
-	var result OAuthToken
-	if err := c.do(ctx, "GET", path, nil, "", &result, "application/json", false); err != nil {
-		return nil, parseErrorResponse(err)
+	var result AppResponse
+	if err := c.do(ctx, "POST", path, body, "application/json", &result, "application/json", true); err != nil {
+		return nil, parseErrorResponseResponse(err)
 	}
 	return &result, nil
 }
 
-// GetApp - Get an app by ID.
-func (c *Client) GetApp(ctx context.Context, app string) (*App, error) {
+// GetApp - Get an app
+//
+// Retrieves the details of an app by its ID. Requires an authenticated user.
+func (c *Client) GetApp(ctx context.Context, app string) (*AppResponse, error) {
 
 	path := "/app/{app}"
 	path = pathReplace(path, "app", "simple", false, app)
 
-	var result App
+	var result AppResponse
 	if err := c.do(ctx, "GET", path, nil, "", &result, "application/json", true); err != nil {
-		return nil, parseErrorResponse(err)
+		return nil, parseErrorResponseResponse(err)
 	}
 	return &result, nil
 }
 
-// ModifyApp - Modify an existing app.
+// ModifyApp - Modify an app
 //
-// Nominally restricted to admins via the `IsAdmin` middleware (see the `IsAdmin` no-op caveat in the top-level description).
-func (c *Client) ModifyApp(ctx context.Context, app string, body AppUpsertRequest) (*App, error) {
+// Updates the name, description, or limits of an existing app. Requires an authenticated admin user.
+func (c *Client) ModifyApp(ctx context.Context, app string, body AppRequest) (*AppResponse, error) {
 
 	path := "/app/{app}"
 	path = pathReplace(path, "app", "simple", false, app)
 
-	var result App
+	var result AppResponse
 	if err := c.do(ctx, "PUT", path, body, "application/json", &result, "application/json", true); err != nil {
-		return nil, parseErrorResponse(err)
+		return nil, parseErrorResponseResponse(err)
 	}
 	return &result, nil
 }
 
-// DeleteApp - Delete an app.
+// DeleteApp - Delete an app
 //
-// Nominally restricted to admins via the `IsAdmin` middleware (see the `IsAdmin` no-op caveat in the top-level description).
+// Permanently deletes an app by its ID. Requires an authenticated admin user.
 func (c *Client) DeleteApp(ctx context.Context, app string) (*SuccessResponse, error) {
 
 	path := "/app/{app}"
@@ -84,182 +74,178 @@ func (c *Client) DeleteApp(ctx context.Context, app string) (*SuccessResponse, e
 
 	var result SuccessResponse
 	if err := c.do(ctx, "DELETE", path, nil, "", &result, "application/json", true); err != nil {
-		return nil, parseErrorResponse(err)
+		return nil, parseErrorResponseResponse(err)
 	}
 	return &result, nil
 }
 
-// CreateApp - Register a new app.
+// GetUser - Get current user
 //
-// Nominally restricted to admins via the `IsAdmin` middleware (see the `IsAdmin` no-op caveat in the top-level description). The creating user's ID is taken from the authenticated session and stored as `created_by`.
-func (c *Client) CreateApp(ctx context.Context, body AppUpsertRequest) (*App, error) {
-
-	path := "/app"
-
-	var result App
-	if err := c.do(ctx, "POST", path, body, "application/json", &result, "application/json", true); err != nil {
-		return nil, parseErrorResponse(err)
-	}
-	return &result, nil
-}
-
-// GetUser - Get the authenticated user's own record.
-func (c *Client) GetUser(ctx context.Context) (*User, error) {
+// Retrieves the profile and authorised apps of the authenticated user. Requires an authenticated user.
+func (c *Client) GetUser(ctx context.Context) (*UserResponse, error) {
 
 	path := "/user"
 
-	var result User
+	var result UserResponse
 	if err := c.do(ctx, "GET", path, nil, "", &result, "application/json", true); err != nil {
-		return nil, parseErrorResponse(err)
+		return nil, parseErrorResponseResponse(err)
 	}
 	return &result, nil
 }
 
-// DeleteUser - Delete the authenticated user's own account.
+// DeleteUser - Delete current user
+//
+// Permanently deletes the authenticated user's account. Requires an authenticated user.
 func (c *Client) DeleteUser(ctx context.Context) (*SuccessResponse, error) {
 
 	path := "/user"
 
 	var result SuccessResponse
 	if err := c.do(ctx, "DELETE", path, nil, "", &result, "application/json", true); err != nil {
-		return nil, parseErrorResponse(err)
+		return nil, parseErrorResponseResponse(err)
 	}
 	return &result, nil
 }
 
-// AuthoriseUser - Authorise the authenticated user to use an app.
-func (c *Client) AuthoriseUser(ctx context.Context, app string) (*User, error) {
+// AuthoriseUser - Authorise user to an app
+//
+// Grants the authenticated user access to the specified app. Requires an authenticated user.
+func (c *Client) AuthoriseUser(ctx context.Context, app string) (*UserResponse, error) {
 
 	path := "/user/to/{app}"
 	path = pathReplace(path, "app", "simple", false, app)
 
-	var result User
+	var result UserResponse
 	if err := c.do(ctx, "PUT", path, nil, "", &result, "application/json", true); err != nil {
-		return nil, parseErrorResponse(err)
+		return nil, parseErrorResponseResponse(err)
 	}
 	return &result, nil
 }
 
-// DeauthoriseUser - Deauthorise the authenticated user from an app.
-func (c *Client) DeauthoriseUser(ctx context.Context, app string) (*User, error) {
+// DeauthoriseUser - Deauthorise user from an app
+//
+// Revokes the authenticated user's access to the specified app. Requires an authenticated user.
+func (c *Client) DeauthoriseUser(ctx context.Context, app string) (*UserResponse, error) {
 
 	path := "/user/from/{app}"
 	path = pathReplace(path, "app", "simple", false, app)
 
-	var result User
+	var result UserResponse
 	if err := c.do(ctx, "DELETE", path, nil, "", &result, "application/json", true); err != nil {
-		return nil, parseErrorResponse(err)
+		return nil, parseErrorResponseResponse(err)
 	}
 	return &result, nil
 }
 
-// GetPreference - Get the authenticated user's stored preference for an app.
+// GetPref - Get a preference
 //
-// The returned `data` field is the raw stored payload string; it is not re-parsed as JSON by the server before being embedded in the response.
-func (c *Client) GetPreference(ctx context.Context, app string) (*Preference, error) {
+// Retrieves the authenticated user's stored preference payload for the given app. Requires an authenticated user.
+func (c *Client) GetPref(ctx context.Context, app string) (*PrefResponse, error) {
 
 	path := "/pref/{app}"
 	path = pathReplace(path, "app", "simple", false, app)
 
-	var result Preference
+	var result PrefResponse
 	if err := c.do(ctx, "GET", path, nil, "", &result, "application/json", true); err != nil {
-		return nil, parseErrorResponse(err)
+		return nil, parseErrorResponseResponse(err)
 	}
 	return &result, nil
 }
 
-// PostPreference - Update the authenticated user's preference for an app.
+// PostPref - Update a preference
 //
-// Accepts an arbitrary JSON body, which is re-encoded and stored verbatim. The response always has `data: null` regardless of the payload sent.
-func (c *Client) PostPreference(ctx context.Context, app string, body map[string]any) (*Preference, error) {
+// Creates or updates the authenticated user's preference payload for the given app, subject to the app's payload size limit. Requires an authenticated user.
+func (c *Client) PostPref(ctx context.Context, app string, body map[string]any) (*PrefResponse, error) {
 
 	path := "/pref/{app}"
 	path = pathReplace(path, "app", "simple", false, app)
 
-	var result Preference
+	var result PrefResponse
 	if err := c.do(ctx, "POST", path, body, "application/json", &result, "application/json", true); err != nil {
-		return nil, parseErrorResponse(err)
+		return nil, parseErrorResponseResponse(err)
 	}
 	return &result, nil
 }
 
-// DeletePreference - Delete the authenticated user's preference for an app.
-func (c *Client) DeletePreference(ctx context.Context, app string) (*SuccessResponse, error) {
+// DeletePref - Delete a preference
+//
+// Deletes the authenticated user's stored preference for the given app. Requires an authenticated user.
+func (c *Client) DeletePref(ctx context.Context, app string) (*SuccessResponse, error) {
 
 	path := "/pref/{app}"
 	path = pathReplace(path, "app", "simple", false, app)
 
 	var result SuccessResponse
 	if err := c.do(ctx, "DELETE", path, nil, "", &result, "application/json", true); err != nil {
-		return nil, parseErrorResponse(err)
+		return nil, parseErrorResponseResponse(err)
 	}
 	return &result, nil
 }
 
-// PostPreferenceFromSrc - Update the authenticated user's preference for an app, scoped to a source.
+// PostPrefFromSource - Update a preference from a source
 //
-// Identical to `POST /pref/{app}`, but restricts the update to the preference entry matching the given `src` filter.
-func (c *Client) PostPreferenceFromSrc(ctx context.Context, app string, src string, body map[string]any) (*Preference, error) {
+// Creates or updates the authenticated user's preference for the given app, tagging the update with a source identifier so it can be excluded from that source's own notification stream. Requires an authenticated user.
+func (c *Client) PostPrefFromSource(ctx context.Context, app string, src string, body map[string]any) (*PrefResponse, error) {
 
 	path := "/pref/{app}/from/{src}"
 	path = pathReplace(path, "app", "simple", false, app)
 	path = pathReplace(path, "src", "simple", false, src)
 
-	var result Preference
+	var result PrefResponse
 	if err := c.do(ctx, "POST", path, body, "application/json", &result, "application/json", true); err != nil {
-		return nil, parseErrorResponse(err)
+		return nil, parseErrorResponseResponse(err)
 	}
 	return &result, nil
 }
 
-// StreamNotifications - Subscribe to preference-change notifications for an app via Server-Sent Events.
+// StartNotification - Stream preference notifications
 //
-// Upgrades the connection to an SSE stream (`go.jetify.com/sse`). Emits `Fugu` events carrying the changed preference payload as `data`, and a `server-disconnected` event when the server closes the connection. The connection is held open until the client disconnects or the server shuts down; this is not a normal request/response operation, so most HTTP tooling (including Insomnia's default request execution) will show it as a long-running request rather than replaying discrete events.
-func (c *Client) StreamNotifications(ctx context.Context, app string) (*string, error) {
+// Opens a server-sent events stream that emits notifications whenever the authenticated user's preference for the given app changes. Requires an authenticated user.
+func (c *Client) StartNotification(ctx context.Context, app string) (*Notification, error) {
 
 	path := "/pref/notification/{app}"
 	path = pathReplace(path, "app", "simple", false, app)
 
-	var result string
+	var result Notification
 	if err := c.do(ctx, "GET", path, nil, "", &result, "text/event-stream", true); err != nil {
-		return nil, parseErrorResponse(err)
+		return nil, parseErrorResponseResponse(err)
 	}
 	return &result, nil
 }
 
-// StreamNotificationsStream is StreamNotifications with the response taken as it arrives, one
+// StartNotificationStream is StartNotification with the response taken as it arrives, one
 // server-sent event at a time. Close the stream when finished with it.
-func (c *Client) StreamNotificationsStream(ctx context.Context, app string) (*EventStream[string], error) {
+func (c *Client) StartNotificationStream(ctx context.Context, app string) (*EventStream[Notification], error) {
 
 	path := "/pref/notification/{app}"
 	path = pathReplace(path, "app", "simple", false, app)
 
 	resp, err := c.doStream(ctx, "GET", path, nil, "", "text/event-stream", true)
 	if err != nil {
-		return nil, parseErrorResponse(err)
+		return nil, parseErrorResponseResponse(err)
 	}
-	return newEventStream[string](resp), nil
+	return newEventStream[Notification](resp), nil
 }
 
-// StreamNotificationsFromSrc - Subscribe to preference-change notifications for an app, scoped to a source, via Server-Sent Events.
+// StartNotificationFromSource - Stream preference notifications excluding a source
 //
-// Identical to `GET /pref/notification/{app}`, but restricts the stream to notifications matching the given `src` filter.
-func (c *Client) StreamNotificationsFromSrc(ctx context.Context, app string, src string) (*string, error) {
+// Opens a server-sent events stream of preference change notifications for the given app, excluding updates originating from the given source. Requires an authenticated user.
+func (c *Client) StartNotificationFromSource(ctx context.Context, app string, src string) (*Notification, error) {
 
 	path := "/pref/notification/{app}/from/{src}"
 	path = pathReplace(path, "app", "simple", false, app)
 	path = pathReplace(path, "src", "simple", false, src)
 
-	var result string
+	var result Notification
 	if err := c.do(ctx, "GET", path, nil, "", &result, "text/event-stream", true); err != nil {
-		return nil, parseErrorResponse(err)
+		return nil, parseErrorResponseResponse(err)
 	}
 	return &result, nil
 }
 
-// StreamNotificationsFromSrcStream is StreamNotificationsFromSrc with the response taken as it arrives, one
+// StartNotificationFromSourceStream is StartNotificationFromSource with the response taken as it arrives, one
 // server-sent event at a time. Close the stream when finished with it.
-func (c *Client) StreamNotificationsFromSrcStream(ctx context.Context, app string, src string) (*EventStream[string], error) {
+func (c *Client) StartNotificationFromSourceStream(ctx context.Context, app string, src string) (*EventStream[Notification], error) {
 
 	path := "/pref/notification/{app}/from/{src}"
 	path = pathReplace(path, "app", "simple", false, app)
@@ -267,7 +253,7 @@ func (c *Client) StreamNotificationsFromSrcStream(ctx context.Context, app strin
 
 	resp, err := c.doStream(ctx, "GET", path, nil, "", "text/event-stream", true)
 	if err != nil {
-		return nil, parseErrorResponse(err)
+		return nil, parseErrorResponseResponse(err)
 	}
-	return newEventStream[string](resp), nil
+	return newEventStream[Notification](resp), nil
 }

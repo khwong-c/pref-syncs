@@ -26,10 +26,10 @@ type DataRepo struct {
 	db *gorm.DB
 }
 
-func NewDataRepo(injector do.Injector) *DataRepo {
+func NewDataRepo(injector do.Injector) (*DataRepo, error) {
 	return &DataRepo{
 		db: di.InvokeOrProvide(injector, sql.NewInMemorySQLite),
-	}
+	}, nil
 }
 
 func (r *DataRepo) getTxFromCtx(ctx context.Context) *gorm.DB {
@@ -81,7 +81,7 @@ func (r *DataRepo) GetOrCreateUser(ctx context.Context, issuer string, subject s
 		userRecord, err := gorm.G[User](tx).
 			Where(&User{
 				AuthProvider: issuer,
-				AuthUserID:   subject,
+				AuthSubject:  subject,
 			}).
 			Take(ctx)
 		if err == nil {
@@ -95,7 +95,7 @@ func (r *DataRepo) GetOrCreateUser(ctx context.Context, issuer string, subject s
 		user = &User{
 			ID:           uuid.NewV7(),
 			AuthProvider: issuer,
-			AuthUserID:   subject,
+			AuthSubject:  subject,
 		}
 		err = gorm.G[User](tx).Create(ctx, user)
 		if err != nil {
@@ -192,18 +192,28 @@ func (r *DataRepo) DeauthorizeUserFromApp(ctx context.Context, uid uuid.UUID, ai
 			return nil
 		}
 
-		user.Apps = lo.RejectMap(
-			user.Apps,
-			func(app *App, index int) (*App, bool) {
-				return &App{ID: app.ID}, app.ID == aid
-			},
-		)
-		if _, err := gorm.G[*User](tx).Where(&User{ID: uid}).Updates(ctx, user); err != nil {
+		if err := r.DeletePreference(ctx, uid, aid); err != nil && !models.IsNotFoundErr(err) {
+			return err
+		}
+		if err := tx.Model(&user).Association("Apps").Delete(&App{ID: aid}); err != nil {
 			return oops.
 				FromContext(ctx).
 				Public(fmt.Sprintf("Unable to deauthorized to app: %s", aid)).
 				Wrap(err)
 		}
+
+		//user.Apps = lo.RejectMap(
+		//	user.Apps,
+		//	func(app *App, index int) (*App, bool) {
+		//		return &App{ID: app.ID}, app.ID == aid
+		//	},
+		//)
+		//if _, err := gorm.G[*User](tx).Where(&User{ID: uid}).Updates(ctx, user); err != nil {
+		//	return oops.
+		//		FromContext(ctx).
+		//		Public(fmt.Sprintf("Unable to deauthorized to app: %s", aid)).
+		//		Wrap(err)
+		//}
 		return nil
 	})
 	return err

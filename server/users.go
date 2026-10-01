@@ -8,8 +8,26 @@ import (
 	"github.com/go-chi/render"
 	"github.com/samber/oops"
 
+	"github.com/khwong-c/pref-syncs/features/repos"
 	"github.com/khwong-c/pref-syncs/server/middlewares"
 )
+
+type UserResponse struct {
+	ID           uuid.UUID    `json:"id"`
+	AuthProvider string       `json:"auth_provider"`
+	AuthSub      string       `json:"auth_sub"`
+	Apps         []*repos.App `json:"apps"`
+}
+
+func (u *UserResponse) FromRepoEntry(user *repos.User) *UserResponse {
+	*u = UserResponse{
+		ID:           user.ID,
+		AuthProvider: user.AuthProvider,
+		AuthSub:      user.AuthSubject,
+		Apps:         user.Apps,
+	}
+	return u
+}
 
 func (s *Server) HandleGetUser(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -24,7 +42,8 @@ func (s *Server) HandleGetUser(w http.ResponseWriter, r *http.Request) {
 		)
 		return
 	}
-	render.JSON(w, r, user)
+	rsp := (&UserResponse{}).FromRepoEntry(user)
+	render.JSON(w, r, rsp)
 }
 
 func (s *Server) HandleAuthoriseUser(w http.ResponseWriter, r *http.Request) {
@@ -47,7 +66,8 @@ func (s *Server) HandleAuthoriseUser(w http.ResponseWriter, r *http.Request) {
 		)
 		return
 	}
-	render.JSON(w, r, user)
+	rsp := (&UserResponse{}).FromRepoEntry(user)
+	render.JSON(w, r, rsp)
 }
 
 func (s *Server) HandleDeauthoriseUser(w http.ResponseWriter, r *http.Request) {
@@ -70,7 +90,8 @@ func (s *Server) HandleDeauthoriseUser(w http.ResponseWriter, r *http.Request) {
 		)
 		return
 	}
-	render.JSON(w, r, user)
+	rsp := (&UserResponse{}).FromRepoEntry(user)
+	render.JSON(w, r, rsp)
 }
 
 func (s *Server) HandleDeleteUser(w http.ResponseWriter, r *http.Request) {

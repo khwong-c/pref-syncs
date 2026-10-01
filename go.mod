@@ -31,9 +31,12 @@ require (
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.3 // indirect
+	github.com/getkin/kin-openapi v0.149.0 // indirect
 	github.com/giraffesyo/openapi-go-naming v0.1.1 // indirect
 	github.com/glebarez/go-sqlite v1.21.2 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.4 // indirect
+	github.com/go-openapi/jsonpointer v0.22.5 // indirect
+	github.com/go-openapi/swag/jsonname v0.25.5 // indirect
 	github.com/go-viper/mapstructure/v2 v2.5.0 // indirect
 	github.com/go-webauthn/webauthn v0.18.0 // indirect
 	github.com/go-webauthn/x v0.3.0 // indirect
@@ -56,6 +59,8 @@ require (
 	github.com/mattn/go-isatty v0.0.17 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
+	github.com/oasdiff/yaml v0.1.1 // indirect
+	github.com/oasdiff/yaml3 v0.0.14 // indirect
 	github.com/oklog/ulid/v2 v2.1.2 // indirect
 	github.com/parallelworks/openapi-client-generator v0.2.11 // indirect
 	github.com/pb33f/jsonpath v0.8.2 // indirect
@@ -68,6 +73,7 @@ require (
 	github.com/prometheus/procfs v0.22.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/samber/go-type-to-string v1.8.0 // indirect
+	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3 // indirect
 	github.com/segmentio/asm v1.2.1 // indirect
 	github.com/spf13/cobra v1.10.2 // indirect
 	github.com/spf13/pflag v1.0.9 // indirect
@@ -92,4 +98,8 @@ require (
 	modernc.org/sqlite v1.23.1 // indirect
 )
 
-tool github.com/parallelworks/openapi-client-generator
+tool (
+	github.com/getkin/kin-openapi
+	github.com/getkin/kin-openapi/cmd/validate
+	github.com/parallelworks/openapi-client-generator
+)

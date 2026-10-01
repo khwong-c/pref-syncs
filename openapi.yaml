@@ -1,0 +1,709 @@
+openapi: 3.0.3
+info:
+  title: Preference Syncs API
+  version: >
+    1.0.0
+  description: >
+    API for managing applications, users, and preference synchronisation.
+tags:
+  - name: General
+    description: >
+      General server operations
+  - name: Apps
+    description: >
+      Application management operations
+  - name: Users
+    description: >
+      User account and authorisation operations
+  - name: Preferences
+    description: >
+      User preference and notification streaming operations
+paths:
+  /:
+    get:
+      operationId: GetRoot
+      tags:
+        - General
+      summary: >
+        Health check
+      description: >
+        Returns a simple greeting to confirm the server is running. No authentication is required.
+      responses:
+        '200':
+          description: >
+            Server is running
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /app:
+    post:
+      operationId: CreateApp
+      tags:
+        - Apps
+      summary: >
+        Create an app
+      description: >
+        Creates a new app owned by the authenticated user. Requires an authenticated admin user.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppRequest'
+      responses:
+        '200':
+          description: >
+            Application created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppResponse'
+        default:
+          description: >
+            Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /app/{app}:
+    get:
+      operationId: GetApp
+      tags:
+        - Apps
+      summary: >
+        Get an app
+      description: >
+        Retrieves the details of an app by its ID. Requires an authenticated user.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: app
+          in: path
+          required: true
+          description: >
+            The unique identifier of the app
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: >
+            Application retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppResponse'
+        default:
+          description: >
+            Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      operationId: ModifyApp
+      tags:
+        - Apps
+      summary: >
+        Modify an app
+      description: >
+        Updates the name, description, or limits of an existing app. Requires an authenticated admin user.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: app
+          in: path
+          required: true
+          description: >
+            The unique identifier of the app
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppRequest'
+      responses:
+        '200':
+          description: >
+            Application modified successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppResponse'
+        default:
+          description: >
+            Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      operationId: DeleteApp
+      tags:
+        - Apps
+      summary: >
+        Delete an app
+      description: >
+        Permanently deletes an app by its ID. Requires an authenticated admin user.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: app
+          in: path
+          required: true
+          description: >
+            The unique identifier of the app
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: >
+            Application deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        default:
+          description: >
+            Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /user:
+    get:
+      operationId: GetUser
+      tags:
+        - Users
+      summary: >
+        Get current user
+      description: >
+        Retrieves the profile and authorised apps of the authenticated user. Requires an authenticated user.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: >
+            User profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        default:
+          description: >
+            Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      operationId: DeleteUser
+      tags:
+        - Users
+      summary: >
+        Delete current user
+      description: >
+        Permanently deletes the authenticated user's account. Requires an authenticated user.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: >
+            User deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        default:
+          description: >
+            Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /user/to/{app}:
+    put:
+      operationId: AuthoriseUser
+      tags:
+        - Users
+      summary: >
+        Authorise user to an app
+      description: >
+        Grants the authenticated user access to the specified app. Requires an authenticated user.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: app
+          in: path
+          required: true
+          description: >
+            The unique identifier of the app
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: >
+            User authorised to application
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        default:
+          description: >
+            Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /user/from/{app}:
+    delete:
+      operationId: DeauthoriseUser
+      tags:
+        - Users
+      summary: >
+        Deauthorise user from an app
+      description: >
+        Revokes the authenticated user's access to the specified app. Requires an authenticated user.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: app
+          in: path
+          required: true
+          description: >
+            The unique identifier of the app
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: >
+            User deauthorised from application
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        default:
+          description: >
+            Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /pref/{app}:
+    get:
+      operationId: GetPref
+      tags:
+        - Preferences
+      summary: >
+        Get a preference
+      description: >
+        Retrieves the authenticated user's stored preference payload for the given app. Requires an authenticated user.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: app
+          in: path
+          required: true
+          description: >
+            The unique identifier of the app
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: >
+            Preference retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrefResponse'
+        default:
+          description: >
+            Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      operationId: PostPref
+      tags:
+        - Preferences
+      summary: >
+        Update a preference
+      description: >
+        Creates or updates the authenticated user's preference payload for the given app, subject to the app's payload size limit. Requires an authenticated user.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: app
+          in: path
+          required: true
+          description: >
+            The unique identifier of the app
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: >
+                Arbitrary JSON preference payload
+      responses:
+        '200':
+          description: >
+            Preference updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrefResponse'
+        default:
+          description: >
+            Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      operationId: DeletePref
+      tags:
+        - Preferences
+      summary: >
+        Delete a preference
+      description: >
+        Deletes the authenticated user's stored preference for the given app. Requires an authenticated user.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: app
+          in: path
+          required: true
+          description: >
+            The unique identifier of the app
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: >
+            Preference deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        default:
+          description: >
+            Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /pref/{app}/from/{src}:
+    post:
+      operationId: PostPrefFromSource
+      tags:
+        - Preferences
+      summary: >
+        Update a preference from a source
+      description: >
+        Creates or updates the authenticated user's preference for the given app, tagging the update with a source identifier so it can be excluded from that source's own notification stream. Requires an authenticated user.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: app
+          in: path
+          required: true
+          description: >
+            The unique identifier of the app
+          schema:
+            type: string
+            format: uuid
+        - name: src
+          in: path
+          required: true
+          description: >
+            The source identifier
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: >
+                Arbitrary JSON preference payload
+      responses:
+        '200':
+          description: >
+            Preference updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrefResponse'
+        default:
+          description: >
+            Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /pref/notification/{app}:
+    get:
+      operationId: StartNotification
+      tags:
+        - Preferences
+      summary: >
+        Stream preference notifications
+      description: >
+        Opens a server-sent events stream that emits notifications whenever the authenticated user's preference for the given app changes. Requires an authenticated user.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: app
+          in: path
+          required: true
+          description: >
+            The unique identifier of the app
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: >
+            Server-sent events stream for preference notifications
+          content:
+            text/event-stream:
+              schema:
+                $ref: '#/components/schemas/Notification'
+        default:
+          description: >
+            Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /pref/notification/{app}/from/{src}:
+    get:
+      operationId: StartNotificationFromSource
+      tags:
+        - Preferences
+      summary: >
+        Stream preference notifications excluding a source
+      description: >
+        Opens a server-sent events stream of preference change notifications for the given app, excluding updates originating from the given source. Requires an authenticated user.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: app
+          in: path
+          required: true
+          description: >
+            The unique identifier of the app
+          schema:
+            type: string
+            format: uuid
+        - name: src
+          in: path
+          required: true
+          description: >
+            The source identifier
+          schema:
+            type: string
+      responses:
+        '200':
+          description: >
+            Server-sent events stream for preference notifications
+          content:
+            text/event-stream:
+              schema:
+                $ref: '#/components/schemas/Notification'
+        default:
+          description: >
+            Error response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >
+        Bearer token authentication
+  schemas:
+    AppRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          nullable: true
+          description: >
+            Name of the application
+        desc:
+          type: string
+          nullable: true
+          description: >
+            Description of the application
+        max_payload:
+          type: integer
+          format: int64
+          nullable: true
+          description: >
+            Maximum payload size in bytes
+        max_user:
+          type: integer
+          format: int64
+          nullable: true
+          description: >
+            Maximum number of users
+      description: >
+        Payload for creating or updating an application
+
+    AppResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: >
+            Unique identifier of the application
+        name:
+          type: string
+          description: >
+            Name of the application
+        desc:
+          type: string
+          description: >
+            Description of the application
+        max_payload:
+          type: integer
+          format: int64
+          description: >
+            Maximum payload size in bytes
+        max_user:
+          type: integer
+          format: int64
+          description: >
+            Maximum number of users
+      description: >
+        Application response payload
+
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: >
+            Unique identifier of the user
+        auth_provider:
+          type: string
+          description: >
+            Authentication provider name
+        auth_sub:
+          type: string
+          description: >
+            Authentication subject identifier
+        apps:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/AppResponse'
+          description: >
+            List of applications the user is authorised for
+      description: >
+        User response payload
+
+    PrefResponse:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+          description: >
+            Unique identifier of the user
+        app_id:
+          type: string
+          format: uuid
+          description: >
+            Unique identifier of the application
+        updated_at:
+          type: string
+          format: date-time
+          description: >
+            Timestamp of last update
+        data:
+          type: object
+          description: >
+            Arbitrary JSON preference payload.
+      description: >
+        Preference response payload
+
+    Notification:
+      type: object
+      properties:
+        User:
+          type: string
+          format: uuid
+          description: >
+            User identifier
+        App:
+          type: string
+          format: uuid
+          description: >
+            App identifier
+        Src:
+          type: string
+          nullable: true
+          description: >
+            Source identifier
+      description: >
+        Notification payload
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: >
+            Indicates whether the operation was successful
+      description: >
+        Generic success response
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: boolean
+          description: >
+            Indicates whether an error occurred
+        message:
+          type: string
+          description: >
+            Error message description
+      description: >
+        Standard error response

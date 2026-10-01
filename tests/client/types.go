@@ -6,56 +6,76 @@ import (
 	"time"
 )
 
-// Error - Standard error response shape produced by `server/middlewares/errors.go`.
-type Error struct {
-	Error   bool   `json:"error"`
-	Message string `json:"message"`
+// AppRequest - Payload for creating or updating an application
+type AppRequest struct {
+	// Name of the application
+	Name *string `json:"name,omitempty"`
+	// Description of the application
+	Desc *string `json:"desc,omitempty"`
+	// Maximum payload size in bytes
+	MaxPayload *int64 `json:"max_payload,omitempty"`
+	// Maximum number of users
+	MaxUser *int64 `json:"max_user,omitempty"`
 }
 
-// SuccessResponse - Generic success acknowledgement returned by delete operations.
-type SuccessResponse struct {
-	Success bool `json:"success"`
+// AppResponse - Application response payload
+type AppResponse struct {
+	// Unique identifier of the application
+	ID *string `json:"id,omitempty"`
+	// Name of the application
+	Name *string `json:"name,omitempty"`
+	// Description of the application
+	Desc *string `json:"desc,omitempty"`
+	// Maximum payload size in bytes
+	MaxPayload *int64 `json:"max_payload,omitempty"`
+	// Maximum number of users
+	MaxUser *int64 `json:"max_user,omitempty"`
 }
 
-// AppUpsertRequest - Request body for creating or modifying an app (`server/apps.go: appReqPayload`). All fields are optional pointers server-side; omitted fields are left unchanged on modify.
-type AppUpsertRequest struct {
-	Name       *string `json:"name,omitempty"`
-	Desc       *string `json:"desc,omitempty"`
-	MaxPayload *int64  `json:"max_payload,omitempty"`
-	MaxUser    *int64  `json:"max_user,omitempty"`
-}
-
-// App - App record (`server/apps.go: appRspPayload`).
-type App struct {
-	ID         string `json:"id"`
-	Name       string `json:"name"`
-	Desc       string `json:"desc"`
-	MaxPayload int64  `json:"max_payload"`
-	MaxUser    int64  `json:"max_user"`
-}
-
-// User - User record. Fields are inferred from usage in `server/middlewares/auth.go` (`user.ID`, `user.AuthProvider`, `user.AuthUserID`); the concrete type and its JSON tags are defined outside `server/` and could not be confirmed. Additional fields may exist on the real type.
-type User struct {
-	ID string `json:"id"`
-	// Inferred field name; unconfirmed JSON tag.
+// UserResponse - User response payload
+type UserResponse struct {
+	// Unique identifier of the user
+	ID *string `json:"id,omitempty"`
+	// Authentication provider name
 	AuthProvider *string `json:"auth_provider,omitempty"`
-	// Inferred field name; unconfirmed JSON tag.
-	AuthUserID *string `json:"auth_user_id,omitempty"`
+	// Authentication subject identifier
+	AuthSub *string `json:"auth_sub,omitempty"`
+	// List of applications the user is authorised for
+	Apps []AppResponse `json:"apps,omitempty"`
 }
 
-// Preference - Preference record (`server/preferences.go: prefRspPayload`).
-type Preference struct {
-	UserID    string    `json:"user_id"`
-	AppID     string    `json:"app_id"`
-	UpdatedAt time.Time `json:"updated_at"`
-	// On `GET`, the raw stored payload string. On `POST`, always `null`.
-	Data any `json:"data,omitempty"`
+// PrefResponse - Preference response payload
+type PrefResponse struct {
+	// Unique identifier of the user
+	UserID *string `json:"user_id,omitempty"`
+	// Unique identifier of the application
+	AppID *string `json:"app_id,omitempty"`
+	// Timestamp of last update
+	UpdatedAt *time.Time `json:"updated_at,omitempty"`
+	// Arbitrary JSON preference payload.
+	Data map[string]any `json:"data,omitempty"`
 }
 
-// OAuthToken - Raw `golang.org/x/oauth2.Token` struct returned verbatim by `server/idp.go`'s callback handler.
-type OAuthToken struct {
-	AccessToken  *string    `json:"access_token,omitempty"`
-	TokenType    *string    `json:"token_type,omitempty"`
-	RefreshToken *string    `json:"refresh_token,omitempty"`
-	Expiry       *time.Time `json:"expiry,omitempty"`
+// Notification - Notification payload
+type Notification struct {
+	// User identifier
+	User *string `json:"User,omitempty"`
+	// App identifier
+	App *string `json:"App,omitempty"`
+	// Source identifier
+	Src *string `json:"Src,omitempty"`
+}
+
+// SuccessResponse - Generic success response
+type SuccessResponse struct {
+	// Indicates whether the operation was successful
+	Success *bool `json:"success,omitempty"`
+}
+
+// ErrorResponse - Standard error response
+type ErrorResponse struct {
+	// Indicates whether an error occurred
+	Error *bool `json:"error,omitempty"`
+	// Error message description
+	Message *string `json:"message,omitempty"`
 }

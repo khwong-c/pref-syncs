@@ -15,7 +15,7 @@ type AppLogic struct {
 
 func NewAppLogic(inj do.Injector) (*AppLogic, error) {
 	app := &AppLogic{
-		dataRepo:         repos.NewDataRepo(inj),
+		dataRepo:         di.InvokeOrProvide(inj, repos.NewDataRepo),
 		notificationRepo: di.InvokeOrProvide(inj, repos.NewSingleContainerNotifier),
 	}
 	if err := app.dataRepo.InitDB(); err != nil {
