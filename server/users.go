@@ -20,10 +20,12 @@ type UserResponse struct {
 }
 
 func (u *UserResponse) FromRepoEntry(user *repos.User) *UserResponse {
-	u.Apps = user.Apps
-	u.AuthSub = user.AuthSubject
-	u.AuthProvider = user.AuthProvider
-	u.Apps = user.Apps
+	*u = UserResponse{
+		ID:           user.ID,
+		AuthProvider: user.AuthProvider,
+		AuthSub:      user.AuthSubject,
+		Apps:         user.Apps,
+	}
 	return u
 }
 

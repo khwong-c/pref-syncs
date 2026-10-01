@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-// Client is an API client for Pref Syncs API.
+// Client is an API client for Preference Syncs API.
 type Client struct {
 	baseURL     string
 	httpClient  *http.Client

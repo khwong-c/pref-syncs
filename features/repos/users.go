@@ -26,10 +26,10 @@ type DataRepo struct {
 	db *gorm.DB
 }
 
-func NewDataRepo(injector do.Injector) *DataRepo {
+func NewDataRepo(injector do.Injector) (*DataRepo, error) {
 	return &DataRepo{
 		db: di.InvokeOrProvide(injector, sql.NewInMemorySQLite),
-	}
+	}, nil
 }
 
 func (r *DataRepo) getTxFromCtx(ctx context.Context) *gorm.DB {

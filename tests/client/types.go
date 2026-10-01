@@ -6,47 +6,76 @@ import (
 	"time"
 )
 
+// AppRequest - Payload for creating or updating an application
 type AppRequest struct {
-	Name       *string `json:"name,omitempty"`
-	Desc       *string `json:"desc,omitempty"`
-	MaxPayload *int64  `json:"max_payload,omitempty"`
-	MaxUser    *int64  `json:"max_user,omitempty"`
+	// Name of the application
+	Name *string `json:"name,omitempty"`
+	// Description of the application
+	Desc *string `json:"desc,omitempty"`
+	// Maximum payload size in bytes
+	MaxPayload *int64 `json:"max_payload,omitempty"`
+	// Maximum number of users
+	MaxUser *int64 `json:"max_user,omitempty"`
 }
 
+// AppResponse - Application response payload
 type AppResponse struct {
-	ID         *string `json:"id,omitempty"`
-	Name       *string `json:"name,omitempty"`
-	Desc       *string `json:"desc,omitempty"`
-	MaxPayload *int64  `json:"max_payload,omitempty"`
-	MaxUser    *int64  `json:"max_user,omitempty"`
+	// Unique identifier of the application
+	ID *string `json:"id,omitempty"`
+	// Name of the application
+	Name *string `json:"name,omitempty"`
+	// Description of the application
+	Desc *string `json:"desc,omitempty"`
+	// Maximum payload size in bytes
+	MaxPayload *int64 `json:"max_payload,omitempty"`
+	// Maximum number of users
+	MaxUser *int64 `json:"max_user,omitempty"`
 }
 
+// UserResponse - User response payload
 type UserResponse struct {
-	ID           *string       `json:"id,omitempty"`
-	AuthProvider *string       `json:"auth_provider,omitempty"`
-	AuthSub      *string       `json:"auth_sub,omitempty"`
-	Apps         []AppResponse `json:"apps,omitempty"`
+	// Unique identifier of the user
+	ID *string `json:"id,omitempty"`
+	// Authentication provider name
+	AuthProvider *string `json:"auth_provider,omitempty"`
+	// Authentication subject identifier
+	AuthSub *string `json:"auth_sub,omitempty"`
+	// List of applications the user is authorised for
+	Apps []AppResponse `json:"apps,omitempty"`
 }
 
+// PrefResponse - Preference response payload
 type PrefResponse struct {
-	UserID    *string    `json:"user_id,omitempty"`
-	AppID     *string    `json:"app_id,omitempty"`
+	// Unique identifier of the user
+	UserID *string `json:"user_id,omitempty"`
+	// Unique identifier of the application
+	AppID *string `json:"app_id,omitempty"`
+	// Timestamp of last update
 	UpdatedAt *time.Time `json:"updated_at,omitempty"`
 	// Arbitrary JSON preference payload.
 	Data map[string]any `json:"data,omitempty"`
 }
 
+// Notification - Notification payload
 type Notification struct {
+	// User identifier
 	User *string `json:"User,omitempty"`
-	App  *string `json:"App,omitempty"`
-	Src  *string `json:"Src,omitempty"`
+	// App identifier
+	App *string `json:"App,omitempty"`
+	// Source identifier
+	Src *string `json:"Src,omitempty"`
 }
 
+// SuccessResponse - Generic success response
 type SuccessResponse struct {
+	// Indicates whether the operation was successful
 	Success *bool `json:"success,omitempty"`
 }
 
+// ErrorResponse - Standard error response
 type ErrorResponse struct {
-	Error   *bool   `json:"error,omitempty"`
+	// Indicates whether an error occurred
+	Error *bool `json:"error,omitempty"`
+	// Error message description
 	Message *string `json:"message,omitempty"`
 }

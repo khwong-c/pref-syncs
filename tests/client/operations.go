@@ -20,6 +20,20 @@ func (c *Client) GetRoot(ctx context.Context) (*string, error) {
 	return &result, nil
 }
 
+// CreateApp - Create an app
+//
+// Creates a new app owned by the authenticated user. Requires an authenticated admin user.
+func (c *Client) CreateApp(ctx context.Context, body AppRequest) (*AppResponse, error) {
+
+	path := "/app"
+
+	var result AppResponse
+	if err := c.do(ctx, "POST", path, body, "application/json", &result, "application/json", true); err != nil {
+		return nil, parseErrorResponseResponse(err)
+	}
+	return &result, nil
+}
+
 // GetApp - Get an app
 //
 // Retrieves the details of an app by its ID. Requires an authenticated user.
@@ -60,20 +74,6 @@ func (c *Client) DeleteApp(ctx context.Context, app string) (*SuccessResponse, e
 
 	var result SuccessResponse
 	if err := c.do(ctx, "DELETE", path, nil, "", &result, "application/json", true); err != nil {
-		return nil, parseErrorResponseResponse(err)
-	}
-	return &result, nil
-}
-
-// CreateApp - Create an app
-//
-// Creates a new app owned by the authenticated user. Requires an authenticated admin user.
-func (c *Client) CreateApp(ctx context.Context, body AppRequest) (*AppResponse, error) {
-
-	path := "/app"
-
-	var result AppResponse
-	if err := c.do(ctx, "POST", path, body, "application/json", &result, "application/json", true); err != nil {
 		return nil, parseErrorResponseResponse(err)
 	}
 	return &result, nil
