@@ -56,6 +56,7 @@ func NewSQLite(file string) (*gorm.DB, error) {
 		sqlite.Open(file),
 		&gorm.Config{
 			PrepareStmt: true,
+			Logger:      newGormLogger(),
 		},
 	)
 	if err != nil {
@@ -73,6 +74,7 @@ func NewInMemorySQLite(do.Injector) (*gorm.DB, error) {
 		sqlite.Open(generateInMemDatabaseDSN()),
 		&gorm.Config{
 			PrepareStmt: true,
+			Logger:      newGormLogger(),
 		},
 	)
 	if err != nil {
