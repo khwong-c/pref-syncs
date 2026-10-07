@@ -328,6 +328,38 @@ func (s *AppTestSuite) TestUserUnauthorisedByDeletingApp() {
 	}
 }
 
+// All users will be unauthorised from the App when the User who created the App is deleted.
+func (s *AppTestSuite) TestUserUnauthorisedByDeletingUser() {
+	ctx := s.T().Context()
+	app := client.AppRequest{
+		Name: new("demo-app"),
+		Desc: new("Demo Application"),
+	}
+
+	// Create an App
+	rspCreate, err := s.adminClient.CreateApp(ctx, app)
+	s.Require().NoError(err)
+	s.Require().NotNil(rspCreate)
+	s.Require().NotNil(rspCreate.ID)
+	appID := uuid.MustParse(*rspCreate.ID)
+
+	// Authorise the App to the user.
+	rsp, err := s.userClient.AuthoriseUser(ctx, appID.String())
+	s.Require().NoError(err)
+	s.Require().NotNil(rsp)
+
+	// Delete the Admin User
+	rspDel, err := s.adminClient.DeleteUser(ctx)
+	s.Require().NoError(err)
+	s.Require().NotNil(rspDel)
+	s.Require().True(*rspDel.Success)
+
+	// There shall be No App authorized to the user.
+	if rsp, err := s.userClient.GetUser(ctx); s.NoError(err) && s.NotNil(rsp) {
+		s.Len(rsp.Apps, 0)
+	}
+}
+
 func TestAppTestSuite(t *testing.T) {
 	suite.Run(t, new(AppTestSuite))
 }
