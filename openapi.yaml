@@ -609,6 +609,11 @@ components:
           format: int64
           description: >
             Maximum number of users
+        created_by:
+          type: string
+          format: uuid
+          description: >
+            Unique identifier of the user who created the application
       description: >
         Application response payload
 

@@ -26,6 +26,7 @@ type appRspPayload struct {
 	Desc       string    `json:"desc"`
 	MaxPayload int       `json:"max_payload"`
 	MaxUser    int       `json:"max_user"`
+	CreatedBy  uuid.UUID `json:"created_by"`
 }
 
 func (s *Server) HandleNewApp(w http.ResponseWriter, r *http.Request) {
@@ -61,6 +62,7 @@ func (s *Server) HandleNewApp(w http.ResponseWriter, r *http.Request) {
 		Desc:       newApp.Desc,
 		MaxPayload: newApp.MaxPayload,
 		MaxUser:    newApp.MaxUser,
+		CreatedBy:  newApp.CreatedBy,
 	})
 }
 
