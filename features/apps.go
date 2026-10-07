@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	defaultMaxPayload = 4096 // 4-KB of Payload
-	defaultMaxUser    = 10   // 10 Users
+	DefaultMaxPayload = 4096 // 4-KB of Payload
+	DefaultMaxUser    = 10   // 10 Users
 )
 
 type AppUpsertReq struct {
@@ -36,18 +36,18 @@ func (a *AppLogic) CreateApp(ctx context.Context, req *AppUpsertReq) (*repos.App
 
 	// Fill the default values
 	if req.MaxPayload == nil {
-		req.MaxPayload = new(defaultMaxPayload)
+		req.MaxPayload = new(DefaultMaxPayload)
 	}
 	if req.MaxUser == nil {
-		req.MaxUser = new(defaultMaxUser)
+		req.MaxUser = new(DefaultMaxUser)
 	}
 
 	// Validate App Options
-	if *req.MaxPayload != defaultMaxPayload {
-		return nil, models.NewBadReqErr(ctx, nil, "max payload must be %d", defaultMaxPayload)
+	if *req.MaxPayload != DefaultMaxPayload {
+		return nil, models.NewBadReqErr(ctx, nil, "max payload must be %d", DefaultMaxPayload)
 	}
-	if *req.MaxUser != defaultMaxUser {
-		return nil, models.NewBadReqErr(ctx, nil, "max user must be %d", defaultMaxUser)
+	if *req.MaxUser != DefaultMaxUser {
+		return nil, models.NewBadReqErr(ctx, nil, "max user must be %d", DefaultMaxUser)
 	}
 
 	newEntry := &repos.App{
@@ -87,11 +87,11 @@ func (a *AppLogic) ModifyApp(
 	if req.Desc != nil && *req.Desc == "" {
 		return nil, models.NewBadReqErr(ctx, nil, "desc cannot be empty")
 	}
-	if req.MaxPayload != nil && *req.MaxPayload != defaultMaxPayload {
-		return nil, models.NewBadReqErr(ctx, nil, "max payload must be %d", defaultMaxPayload)
+	if req.MaxPayload != nil && *req.MaxPayload != DefaultMaxPayload {
+		return nil, models.NewBadReqErr(ctx, nil, "max payload must be %d", DefaultMaxPayload)
 	}
-	if req.MaxUser != nil && *req.MaxUser != defaultMaxUser {
-		return nil, models.NewBadReqErr(ctx, nil, "max user must be %d", defaultMaxUser)
+	if req.MaxUser != nil && *req.MaxUser != DefaultMaxUser {
+		return nil, models.NewBadReqErr(ctx, nil, "max user must be %d", DefaultMaxUser)
 	}
 
 	// Check Ownership
