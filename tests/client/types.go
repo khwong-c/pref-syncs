@@ -55,7 +55,7 @@ type PrefResponse struct {
 	// Timestamp of last update
 	UpdatedAt *time.Time `json:"updated_at,omitempty"`
 	// Arbitrary JSON preference payload.
-	Data map[string]any `json:"data,omitempty"`
+	Data any `json:"data,omitempty"`
 }
 
 // Notification - Notification payload

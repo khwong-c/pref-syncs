@@ -21,7 +21,7 @@ type prefRspPayload struct {
 	UserID    uuid.UUID       `json:"user_id"`
 	AppID     uuid.UUID       `json:"app_id"`
 	UpdatedAt time.Time       `json:"updated_at"`
-	Data      json.RawMessage `json:"data"`
+	Data      json.RawMessage `json:"data"` // Data payload can be any JSON object, including nested objects, arrays, string, or number.
 }
 
 func (s *Server) HandlePostPref(w http.ResponseWriter, r *http.Request) {

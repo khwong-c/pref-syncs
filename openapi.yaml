@@ -363,7 +363,6 @@ paths:
         content:
           application/json:
             schema:
-              type: object
               description: >
                 Arbitrary JSON preference payload
       responses:
@@ -448,7 +447,6 @@ paths:
         content:
           application/json:
             schema:
-              type: object
               description: >
                 Arbitrary JSON preference payload
       responses:
@@ -662,7 +660,6 @@ components:
           description: >
             Timestamp of last update
         data:
-          type: object
           description: >
             Arbitrary JSON preference payload.
       description: >

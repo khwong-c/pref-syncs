@@ -155,7 +155,7 @@ func (c *Client) GetPref(ctx context.Context, app string) (*PrefResponse, error)
 // PostPref - Update a preference
 //
 // Creates or updates the authenticated user's preference payload for the given app, subject to the app's payload size limit. Requires an authenticated user.
-func (c *Client) PostPref(ctx context.Context, app string, body map[string]any) (*PrefResponse, error) {
+func (c *Client) PostPref(ctx context.Context, app string, body any) (*PrefResponse, error) {
 
 	path := "/pref/{app}"
 	path = pathReplace(path, "app", "simple", false, app)
@@ -185,7 +185,7 @@ func (c *Client) DeletePref(ctx context.Context, app string) (*SuccessResponse, 
 // PostPrefFromSource - Update a preference from a source
 //
 // Creates or updates the authenticated user's preference for the given app, tagging the update with a source identifier so it can be excluded from that source's own notification stream. Requires an authenticated user.
-func (c *Client) PostPrefFromSource(ctx context.Context, app string, src string, body map[string]any) (*PrefResponse, error) {
+func (c *Client) PostPrefFromSource(ctx context.Context, app string, src string, body any) (*PrefResponse, error) {
 
 	path := "/pref/{app}/from/{src}"
 	path = pathReplace(path, "app", "simple", false, app)
