@@ -1,16 +1,18 @@
 package tests
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"testing"
 	"uuid"
 
 	"github.com/khwong-c/httptestclient"
-	"github.com/khwong-c/pref-syncs/features/repos"
 	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/suite"
 	"gorm.io/gorm"
+
+	"github.com/khwong-c/pref-syncs/features/repos"
 
 	"github.com/khwong-c/pref-syncs/config"
 	"github.com/khwong-c/pref-syncs/drivers/sql"
@@ -57,6 +59,17 @@ func (s *UserTestSuite) SetupSuite() {
 	))
 }
 
+func getUserID(ctx context.Context, client *client.Client) (uuid.UUID, error) {
+	rsp, err := client.GetUser(ctx)
+	if err != nil {
+		return uuid.UUID{}, err
+	}
+	if rsp.ID == nil {
+		return uuid.UUID{}, fmt.Errorf("user ID is nil")
+	}
+	return uuid.Parse(*rsp.ID)
+}
+
 func (s *UserTestSuite) SetupTest() {
 	_, _ = s.userClient.DeleteUser(s.T().Context())
 }
@@ -79,22 +92,18 @@ func (s *UserTestSuite) TestCreateUserByGetUser() {
 
 func (s *UserTestSuite) TestGetExistingUser() {
 	ctx := s.T().Context()
-	var uid string
+
 	// Create a user by Get User Call
-	if rsp, err := s.userClient.GetUser(ctx); s.NoError(err) {
-		s.Require().NotNil(rsp.ID)
-		uid = *rsp.ID
-	}
+	uid, err := getUserID(ctx, s.userClient)
+	s.Require().NoError(err)
 
 	// Get user again. The ID shall match.
 	if rsp, err := s.userClient.GetUser(ctx); s.NoError(err) && s.NotNil(rsp.ID) {
-		s.Equal(uid, *rsp.ID)
+		s.Equal(uid, uuid.MustParse(*rsp.ID))
 	}
 
-	if uid, err := uuid.Parse(uid); s.NoError(err) {
-		if user, err := s.dataRepo.GetUser(ctx, uid); s.NoError(err) && s.NotNil(user) {
-			s.Equal(uid, user.ID)
-		}
+	if user, err := s.dataRepo.GetUser(ctx, uid); s.NoError(err) && s.NotNil(user) {
+		s.Equal(uid, user.ID)
 	}
 }
 
@@ -109,12 +118,9 @@ func (s *UserTestSuite) TestUserIDNotNull() {
 
 func (s *UserTestSuite) TestDeleteUser() {
 	ctx := s.T().Context()
-	var uid string
 	// Create a user by Get User Call
-	if rsp, err := s.userClient.GetUser(ctx); s.NoError(err) {
-		s.Require().NotNil(rsp.ID)
-		uid = *rsp.ID
-	}
+	uid, err := getUserID(ctx, s.userClient)
+	s.Require().NoError(err)
 
 	// Delete the user
 	if rsp, err := s.userClient.DeleteUser(ctx); s.NoError(err) && s.NotNil(rsp.Success) {
@@ -122,13 +128,14 @@ func (s *UserTestSuite) TestDeleteUser() {
 	}
 
 	// Check if the user is removed from the data record.
-	if _, err := s.dataRepo.GetUser(ctx, uuid.MustParse(uid)); s.Error(err) {
+	if _, err := s.dataRepo.GetUser(ctx, uid); s.Error(err) {
 		s.True(models.IsNotFoundErr(err))
 	}
 
 	// Get user again. The ID shall not match.
-	if rsp, err := s.userClient.GetUser(ctx); s.NoError(err) && s.NotNil(rsp.ID) {
-		s.NotEqual(uid, *rsp.ID)
+	// Create a user by Get User Call
+	if uid2, err := getUserID(ctx, s.userClient); s.NoError(err) {
+		s.NotEqual(uid, uid2)
 	}
 }
 

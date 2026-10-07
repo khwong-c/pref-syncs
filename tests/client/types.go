@@ -30,6 +30,8 @@ type AppResponse struct {
 	MaxPayload *int64 `json:"max_payload,omitempty"`
 	// Maximum number of users
 	MaxUser *int64 `json:"max_user,omitempty"`
+	// Unique identifier of the user who created the application
+	CreatedBy *string `json:"created_by,omitempty"`
 }
 
 // UserResponse - User response payload

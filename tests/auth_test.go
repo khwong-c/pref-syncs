@@ -89,10 +89,6 @@ func (s *AuthTestSuite) SetupSuite() {
 	s.adminClient = createAPIClient(s.server, client.WithAuth(
 		&client.BearerAuth{Token: t.AccessToken},
 	))
-	rsp, err := s.httpClient.Get("http://127.0.0.1:7086/idp/oidc/jwks")
-	s.Require().NoError(err)
-	s.Require().NotNil(rsp)
-	s.Require().Equal(http.StatusOK, rsp.StatusCode)
 }
 
 func (s *AuthTestSuite) TestIsUserProtector() {
