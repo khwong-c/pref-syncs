@@ -73,7 +73,7 @@ func NewServer(inj do.Injector) (*Server, error) {
 	}
 
 	var err error
-	r, err = s.CreateRoutes(r, cfg)
+	_, err = s.CreateRoutes(r, cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -167,5 +167,5 @@ func (s *Server) Shutdown() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	s.shutdown()
-	s.Server.Shutdown(ctx)
+	_ = s.Server.Shutdown(ctx)
 }

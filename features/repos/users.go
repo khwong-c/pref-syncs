@@ -202,13 +202,13 @@ func (r *DataRepo) DeauthorizeUserFromApp(ctx context.Context, uid uuid.UUID, ai
 				Wrap(err)
 		}
 
-		//user.Apps = lo.RejectMap(
+		// user.Apps = lo.RejectMap(
 		//	user.Apps,
 		//	func(app *App, index int) (*App, bool) {
 		//		return &App{ID: app.ID}, app.ID == aid
 		//	},
 		//)
-		//if _, err := gorm.G[*User](tx).Where(&User{ID: uid}).Updates(ctx, user); err != nil {
+		// if _, err := gorm.G[*User](tx).Where(&User{ID: uid}).Updates(ctx, user); err != nil {
 		//	return oops.
 		//		FromContext(ctx).
 		//		Public(fmt.Sprintf("Unable to deauthorized to app: %s", aid)).

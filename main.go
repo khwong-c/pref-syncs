@@ -11,9 +11,9 @@ import (
 
 func main() {
 	i := do.New()
-	//_ = di.InvokeOrProvide(i, func(injector do.Injector) (*gorm.DB, error) {
-	//	return sql.NewSQLite("tmp.db")
-	//})
+	// _ = di.InvokeOrProvide(i, func(injector do.Injector) (*gorm.DB, error) {
+	// 	return sql.NewSQLite("tmp.db")
+	// })
 	s := di.InvokeOrProvide(i, server.NewServer)
 
 	go s.ListenAndServe() //nolint:errcheck
