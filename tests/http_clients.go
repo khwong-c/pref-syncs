@@ -7,12 +7,25 @@ import (
 
 	"github.com/khwong-c/pref-syncs/server"
 	"github.com/khwong-c/pref-syncs/tests/client"
+	httptestclient2 "github.com/khwong-c/pref-syncs/tests/httptestclient"
 )
 
 func createAPIClient(svr *server.Server, opts ...client.ClientOption) *client.Client {
 	opts = append(
 		opts,
 		client.WithHTTPClient(httptestclient.New(svr.Handler)),
+	)
+	c := client.NewClient(
+		"http://localhost:7086",
+		opts...,
+	)
+	return c
+}
+
+func createAPIStreamingClient(svr *server.Server, opts ...client.ClientOption) *client.Client {
+	opts = append(
+		opts,
+		client.WithHTTPClient(httptestclient2.NewStreamingClient(svr.Handler)),
 	)
 	c := client.NewClient(
 		"http://localhost:7086",
