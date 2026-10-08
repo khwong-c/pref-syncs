@@ -16,7 +16,7 @@ type Notification struct {
 
 type NotificationRepoI interface {
 	Notify(ctx context.Context, notification *Notification) error
-	GetStream(ctx context.Context, uid uuid.UUID, aid uuid.UUID) (ro.Observable[*Notification], error)
+	Subscribe(ctx context.Context, uid uuid.UUID, aid uuid.UUID) (ro.Observable[*Notification], ro.Teardown, error)
 }
 
 type SingleContainerNotifier struct {
@@ -34,12 +34,14 @@ func (r *SingleContainerNotifier) Notify(ctx context.Context, notification *Noti
 	return nil
 }
 
-// GetStream returns a filtered stream of notifications for a given user, app. Event from the specified source is excluded.
-func (r *SingleContainerNotifier) GetStream(ctx context.Context, uid uuid.UUID, aid uuid.UUID) (ro.Observable[*Notification], error) {
+// Subscribe returns a filtered stream of notifications for a given user, app. Event from the specified source is excluded.
+func (r *SingleContainerNotifier) Subscribe(ctx context.Context, uid uuid.UUID, aid uuid.UUID) (ro.Observable[*Notification], ro.Teardown, error) {
+	subject := ro.NewUnicastSubject[*Notification](ro.UnicastSubjectUnlimitedBufferSize)
+	subscription := r.stream.SubscribeWithContext(ctx, subject)
 	return ro.Pipe1(
-		r.stream,
+		subject.AsObservable(),
 		ro.Filter(func(notification *Notification) bool {
 			return notification.User == uid && notification.App == aid
 		}),
-	), nil
+	), subscription.Unsubscribe, nil
 }

@@ -10,17 +10,15 @@ import (
 	"github.com/khwong-c/pref-syncs/features/repos"
 )
 
-func (a *AppLogic) GetNotificationStream(ctx context.Context, user, app uuid.UUID, src *string) (ro.Observable[*repos.Notification], error) {
-	stream, err := a.notificationRepo.GetStream(ctx, user, app)
+func (a *AppLogic) SubscribeNotification(ctx context.Context, user, app uuid.UUID, src *string) (ro.Observable[*repos.Notification], ro.Teardown, error) {
+	obs, teardown, err := a.notificationRepo.Subscribe(ctx, user, app)
 	if err != nil {
-		return nil, oops.FromContext(ctx).Wrap(err)
+		return nil, nil, oops.FromContext(ctx).Wrap(err)
 	}
 	return ro.Pipe1(
-		stream,
-		ro.Filter[*repos.Notification](
-			func(item *repos.Notification) bool {
-				return src == nil || *item.Src != *src
-			},
-		),
-	), nil
+		obs,
+		ro.Filter(func(item *repos.Notification) bool {
+			return src == nil || item.Src == nil || *item.Src != *src
+		}),
+	), teardown, nil
 }

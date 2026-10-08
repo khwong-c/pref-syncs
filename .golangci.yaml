@@ -104,6 +104,7 @@ linters:
           - unused
           - goconst
           - mnd
+          - bodyclose
         path: '^.*test\.go$'
     paths: []
 

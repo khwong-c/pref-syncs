@@ -161,14 +161,14 @@ func (s *Server) HandleStartNotification(w http.ResponseWriter, r *http.Request)
 		src = &srcStr
 	}
 
-	stream, err := s.appLogic.GetNotificationStream(ctx, uid, aid, src)
+	observable, teardown, err := s.appLogic.SubscribeNotification(ctx, uid, aid, src)
 	if err != nil {
 		middlewares.SimpleHTTPError(
 			ctx, w, err, "Failed to get notification stream", 0,
 		)
 		return
 	}
-	_ = stream
+	defer teardown()
 
 	conn, err := sse.Upgrade(
 		ctx, w,
@@ -192,18 +192,9 @@ func (s *Server) HandleStartNotification(w http.ResponseWriter, r *http.Request)
 			if err := conn.SendData(ctx, value); err != nil {
 				return
 			}
-			if err := conn.SendEvent(ctx, &sse.Event{
-				Event:     "Fugu",
-				Data:      value,
-				Retry:     0,
-				Split:     false,
-				Timestamp: time.Time{},
-			}); err != nil {
-				return
-			}
 		},
 	)
-	sub := stream.SubscribeWithContext(ctx, observer)
+	sub := observable.SubscribeWithContext(ctx, observer)
 	defer sub.Unsubscribe()
 
 	// Wait for remote disconnection or server shutdown

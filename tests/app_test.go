@@ -6,19 +6,18 @@ import (
 	"testing"
 	"uuid"
 
-	"github.com/khwong-c/httptestclient"
 	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/suite"
 	"gorm.io/gorm"
 
-	"github.com/khwong-c/pref-syncs/features"
-	"github.com/khwong-c/pref-syncs/features/repos"
-
 	"github.com/khwong-c/pref-syncs/config"
 	"github.com/khwong-c/pref-syncs/drivers/sql"
+	"github.com/khwong-c/pref-syncs/features"
+	"github.com/khwong-c/pref-syncs/features/repos"
 	"github.com/khwong-c/pref-syncs/models"
 	"github.com/khwong-c/pref-syncs/server"
 	"github.com/khwong-c/pref-syncs/tests/client"
+	"github.com/khwong-c/pref-syncs/tests/httptestclient"
 	"github.com/khwong-c/pref-syncs/tooling/di"
 )
 

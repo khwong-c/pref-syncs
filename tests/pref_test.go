@@ -9,7 +9,6 @@ import (
 	"time"
 	"uuid"
 
-	"github.com/khwong-c/httptestclient"
 	"github.com/samber/do/v2"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/suite"
@@ -21,6 +20,7 @@ import (
 	"github.com/khwong-c/pref-syncs/models"
 	"github.com/khwong-c/pref-syncs/server"
 	"github.com/khwong-c/pref-syncs/tests/client"
+	"github.com/khwong-c/pref-syncs/tests/httptestclient"
 	"github.com/khwong-c/pref-syncs/tooling/di"
 )
 
