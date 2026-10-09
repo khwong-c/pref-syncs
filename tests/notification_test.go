@@ -34,10 +34,11 @@ type NotificationTestSuite struct {
 	cfg      *config.Config
 	dataRepo *repos.DataRepo
 
-	userClient       *client.Client
-	userStreamClient *client.Client
-	adminClient      *client.Client
-	httpClient       *http.Client
+	userClient        *client.Client
+	userStreamClient  *client.Client
+	adminClient       *client.Client
+	adminStreamClient *client.Client
+	httpClient        *http.Client
 
 	testTimeout time.Duration
 }
@@ -81,6 +82,9 @@ func (s *NotificationTestSuite) SetupSuite() {
 	s.adminClient = createAPIClient(s.server, client.WithAuth(
 		&client.BearerAuth{Token: t.AccessToken},
 	))
+	s.adminStreamClient = createAPIStreamingClient(s.server, client.WithAuth(
+		&client.BearerAuth{Token: t.AccessToken},
+	))
 
 	s.testTimeout = 3 * time.Second
 }
@@ -114,6 +118,7 @@ func (s *NotificationTestSuite) createAndAuthoriseApp() uuid.UUID {
 
 	return appID
 }
+
 func (s *NotificationTestSuite) TestNotifiedByPostPref() {
 	ctx := s.T().Context()
 	appID := s.createAndAuthoriseApp()
@@ -178,7 +183,7 @@ func (s *NotificationTestSuite) TestNotifiedByPostPref() {
 	}
 }
 
-func (s *NotificationTestSuite) TestNotifiedFilteredBySource() {
+func (s *NotificationTestSuite) TestNotificationFilteredBySource() {
 	ctx := s.T().Context()
 	appID := s.createAndAuthoriseApp()
 
@@ -265,6 +270,119 @@ func (s *NotificationTestSuite) TestNotifiedFilteredBySource() {
 			}
 		})
 	}
+}
+
+func (s *NotificationTestSuite) TestNotificationIsolatedByUser() {
+	ctx := s.T().Context()
+	appID := s.createAndAuthoriseApp()
+	_, err := s.adminClient.AuthoriseUser(ctx, appID.String())
+	s.Require().NoError(err)
+
+	const payloadStub = "data-payload"
+	const userNotifications = 1
+	const adminNotifications = 3
+
+	ctxStrm, cancel := context.WithCancel(ctx)
+	userStrm, err := s.userStreamClient.StartNotificationStream(ctxStrm, appID.String())
+	s.Require().NoError(err)
+	adminStrm, err := s.adminStreamClient.StartNotificationStream(ctxStrm, appID.String())
+	s.Require().NoError(err)
+
+	for range userNotifications {
+		_, err = s.userClient.PostPref(ctx, appID.String(), payloadStub)
+		s.Require().NoError(err)
+	}
+	for range adminNotifications {
+		_, err = s.adminClient.PostPref(ctx, appID.String(), payloadStub)
+		s.Require().NoError(err)
+	}
+	cancel()
+
+	userResult := make([]string, 0)
+	adminResult := make([]string, 0)
+	for {
+		item, err := userStrm.Next()
+		if err != nil {
+			s.Equal(err, io.EOF)
+			break
+		}
+		if s.NotNil(item) && s.NotNil(item.User) {
+			userResult = append(userResult, *item.User)
+		}
+	}
+	for {
+		item, err := adminStrm.Next()
+		if err != nil {
+			s.Equal(err, io.EOF)
+			break
+		}
+		if s.NotNil(item) && s.NotNil(item.User) {
+			adminResult = append(adminResult, *item.User)
+		}
+	}
+	userStrm.Close()
+	adminStrm.Close()
+
+	s.Len(userResult, userNotifications)
+	s.Len(adminResult, adminNotifications)
+	s.NotEqual(userResult, adminResult)
+}
+
+func (s *NotificationTestSuite) TestNotificationIsolatedByApp() {
+	ctx := s.T().Context()
+	appID1 := s.createAndAuthoriseApp()
+	appID2 := s.createAndAuthoriseApp()
+
+	const payloadStub = "data-payload"
+	const app1Notifications = 1
+	const app2Notifications = 3
+
+	ctxStrm, cancel := context.WithCancel(ctx)
+	strm1, err := s.userStreamClient.StartNotificationStream(ctxStrm, appID1.String())
+	s.Require().NoError(err)
+	strm2, err := s.userStreamClient.StartNotificationStream(ctxStrm, appID2.String())
+	s.Require().NoError(err)
+
+	for range app1Notifications {
+		_, err = s.userClient.PostPref(ctx, appID1.String(), payloadStub)
+		s.Require().NoError(err)
+	}
+	for range app2Notifications {
+		_, err = s.userClient.PostPref(ctx, appID2.String(), payloadStub)
+		s.Require().NoError(err)
+	}
+	cancel()
+
+	app1Result := make([]string, 0)
+	app2Result := make([]string, 0)
+	for {
+		item, err := strm1.Next()
+		if err != nil {
+			s.Equal(err, io.EOF)
+			break
+		}
+		if s.NotNil(item) && s.NotNil(item.App) {
+			app1Result = append(app1Result, *item.App)
+		}
+	}
+	for {
+		item, err := strm2.Next()
+		if err != nil {
+			s.Equal(err, io.EOF)
+			break
+		}
+		if s.NotNil(item) && s.NotNil(item.App) {
+			app2Result = append(app2Result, *item.App)
+		}
+	}
+	strm1.Close()
+	strm2.Close()
+
+	s.Len(app1Result, app1Notifications)
+	s.Len(app2Result, app2Notifications)
+	s.NotEqual(app1Result, app2Result)
+	s.Equal(appID1.String(), app1Result[0])
+	s.Equal(appID2.String(), app2Result[0])
 }
 
 // Detect potential memory leaks from the notification stream.

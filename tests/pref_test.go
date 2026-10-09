@@ -343,6 +343,77 @@ func (s *PrefTestSuite) TestChainPrefRemoval() {
 	}
 }
 
+// Preferences under the same app from different users shall be isolated.
+func (s *PrefTestSuite) TestUserIsolation() {
+	ctx := s.T().Context()
+	appID := s.createAndAuthoriseApp()
+	_, err := s.adminClient.AuthoriseUser(ctx, appID.String())
+	s.Require().NoError(err)
+
+	adminPayload := map[string]any{
+		"key": "value-admin",
+	}
+	userPayload := map[string]any{
+		"key": "value-user",
+	}
+
+	adminRsp, err := s.adminClient.PostPref(ctx, appID.String(), adminPayload)
+	s.Require().NoError(err)
+	s.Require().NotNil(adminRsp)
+
+	_, err = s.userClient.PostPref(ctx, appID.String(), userPayload)
+	s.Require().NoError(err)
+	_, err = s.adminClient.PostPref(ctx, appID.String(), adminPayload)
+	s.Require().NoError(err)
+
+	userPref, err := s.userClient.GetPref(ctx, appID.String())
+	s.Require().NoError(err)
+	s.Require().NotNil(userPref)
+	s.Require().NotNil(userPref.Data)
+
+	adminPref, err := s.adminClient.GetPref(ctx, appID.String())
+	s.Require().NoError(err)
+	s.Require().NotNil(adminPref)
+	s.Require().NotNil(adminPref.Data)
+
+	s.NotEqual(userPref.Data, adminPref.Data)
+	s.Equal(adminPayload, adminPref.Data)
+	s.Equal(userPayload, userPref.Data)
+}
+
+// Preferences from the same users under different apps shall be isolated.
+func (s *PrefTestSuite) TestAppIsolation() {
+	ctx := s.T().Context()
+	app1ID := s.createAndAuthoriseApp()
+	app2ID := s.createAndAuthoriseApp()
+
+	app1Payload := map[string]any{
+		"key": "value-app1",
+	}
+	app2Payload := map[string]any{
+		"key": "value-app2",
+	}
+
+	_, err := s.userClient.PostPref(ctx, app1ID.String(), app1Payload)
+	s.Require().NoError(err)
+	_, err = s.userClient.PostPref(ctx, app2ID.String(), app2Payload)
+	s.Require().NoError(err)
+
+	app1Pref, err := s.userClient.GetPref(ctx, app1ID.String())
+	s.Require().NoError(err)
+	s.Require().NotNil(app1Pref)
+	s.Require().NotNil(app1Pref.Data)
+
+	app2Pref, err := s.userClient.GetPref(ctx, app2ID.String())
+	s.Require().NoError(err)
+	s.Require().NotNil(app2Pref)
+	s.Require().NotNil(app2Pref.Data)
+
+	s.NotEqual(app1Pref.Data, app2Pref.Data)
+	s.Equal(app1Payload, app1Pref.Data)
+	s.Equal(app2Payload, app2Pref.Data)
+}
+
 func (s *PrefTestSuite) TestSizeLimit() {
 	ctx := s.T().Context()
 	appID := s.createAndAuthoriseApp()
