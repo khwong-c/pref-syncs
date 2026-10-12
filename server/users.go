@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
+	"github.com/samber/lo"
 	"github.com/samber/oops"
 
 	"github.com/khwong-c/pref-syncs/features/repos"
@@ -13,10 +14,10 @@ import (
 )
 
 type UserResponse struct {
-	ID           uuid.UUID    `json:"id"`
-	AuthProvider string       `json:"auth_provider"`
-	AuthSub      string       `json:"auth_sub"`
-	Apps         []*repos.App `json:"apps"`
+	ID           uuid.UUID        `json:"id"`
+	AuthProvider string           `json:"auth_provider"`
+	AuthSub      string           `json:"auth_sub"`
+	Apps         []*appRspPayload `json:"apps"`
 }
 
 func (u *UserResponse) FromRepoEntry(user *repos.User) *UserResponse {
@@ -24,7 +25,9 @@ func (u *UserResponse) FromRepoEntry(user *repos.User) *UserResponse {
 		ID:           user.ID,
 		AuthProvider: user.AuthProvider,
 		AuthSub:      user.AuthSubject,
-		Apps:         user.Apps,
+		Apps: lo.Map(user.Apps, func(app *repos.App, _ int) *appRspPayload {
+			return (&appRspPayload{}).FromRepoEntry(app)
+		}),
 	}
 	return u
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/samber/oops"
 
 	"github.com/khwong-c/pref-syncs/features"
+	"github.com/khwong-c/pref-syncs/features/repos"
 	"github.com/khwong-c/pref-syncs/server/middlewares"
 )
 
@@ -27,6 +28,18 @@ type appRspPayload struct {
 	MaxPayload int       `json:"max_payload"`
 	MaxUser    int       `json:"max_user"`
 	CreatedBy  uuid.UUID `json:"created_by"`
+}
+
+func (a *appRspPayload) FromRepoEntry(app *repos.App) *appRspPayload {
+	*a = appRspPayload{
+		ID:         app.ID,
+		Name:       app.Name,
+		Desc:       app.Desc,
+		MaxPayload: app.MaxPayload,
+		MaxUser:    app.MaxUser,
+		CreatedBy:  app.CreatedBy,
+	}
+	return a
 }
 
 func (s *Server) HandleNewApp(w http.ResponseWriter, r *http.Request) {
@@ -56,14 +69,7 @@ func (s *Server) HandleNewApp(w http.ResponseWriter, r *http.Request) {
 		)
 		return
 	}
-	render.JSON(w, r, appRspPayload{
-		ID:         newApp.ID,
-		Name:       newApp.Name,
-		Desc:       newApp.Desc,
-		MaxPayload: newApp.MaxPayload,
-		MaxUser:    newApp.MaxUser,
-		CreatedBy:  newApp.CreatedBy,
-	})
+	render.JSON(w, r, (&appRspPayload{}).FromRepoEntry(newApp))
 }
 
 func (s *Server) HandleGetApp(w http.ResponseWriter, r *http.Request) {
@@ -82,13 +88,7 @@ func (s *Server) HandleGetApp(w http.ResponseWriter, r *http.Request) {
 		)
 		return
 	}
-	render.JSON(w, r, appRspPayload{
-		ID:         app.ID,
-		Name:       app.Name,
-		Desc:       app.Desc,
-		MaxPayload: app.MaxPayload,
-		MaxUser:    app.MaxUser,
-	})
+	render.JSON(w, r, (&appRspPayload{}).FromRepoEntry(app))
 }
 
 func (s *Server) HandleModifyApp(w http.ResponseWriter, r *http.Request) {
@@ -126,13 +126,7 @@ func (s *Server) HandleModifyApp(w http.ResponseWriter, r *http.Request) {
 		)
 		return
 	}
-	render.JSON(w, r, appRspPayload{
-		ID:         modApp.ID,
-		Name:       modApp.Name,
-		Desc:       modApp.Desc,
-		MaxPayload: modApp.MaxPayload,
-		MaxUser:    modApp.MaxUser,
-	})
+	render.JSON(w, r, (&appRspPayload{}).FromRepoEntry(modApp))
 }
 
 func (s *Server) HandleDeleteApp(w http.ResponseWriter, r *http.Request) {
