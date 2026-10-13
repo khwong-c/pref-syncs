@@ -2,6 +2,7 @@ package tests
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -329,13 +330,14 @@ func (s *NotificationTestSuite) TestNotificationIsolatedByUser() {
 }
 
 func (s *NotificationTestSuite) TestNotificationIsolatedByApp() {
-	ctx := s.T().Context()
-	appID1 := s.createAndAuthoriseApp()
-	appID2 := s.createAndAuthoriseApp()
+	const (
+		payloadStub       = "data-payload"
+		app1Notifications = 1
+		app2Notifications = 3
+	)
 
-	const payloadStub = "data-payload"
-	const app1Notifications = 1
-	const app2Notifications = 3
+	ctx := s.T().Context()
+	appID1, appID2 := s.createAndAuthoriseApp(), s.createAndAuthoriseApp()
 
 	ctxStrm, cancel := context.WithCancel(ctx)
 	strm1, err := s.userStreamClient.StartNotificationStream(ctxStrm, appID1.String())
@@ -353,8 +355,7 @@ func (s *NotificationTestSuite) TestNotificationIsolatedByApp() {
 	}
 	cancel()
 
-	app1Result := make([]string, 0)
-	app2Result := make([]string, 0)
+	app1Result, app2Result := make([]string, 0), make([]string, 0)
 	for {
 		item, err := strm1.Next()
 		if err != nil {
@@ -383,6 +384,44 @@ func (s *NotificationTestSuite) TestNotificationIsolatedByApp() {
 	s.NotEqual(app1Result, app2Result)
 	s.Equal(appID1.String(), app1Result[0])
 	s.Equal(appID2.String(), app2Result[0])
+}
+
+func (s *NotificationTestSuite) TestSubscribeNonExistsApp() {
+	appID := uuid.New()
+	ctx := s.T().Context()
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	_, err := s.userStreamClient.StartNotificationStream(ctx, appID.String())
+	if s.Error(err) {
+		if err, ok := errors.AsType[*client.APIError](err); s.True(ok) && s.NotNil(err) {
+			s.Equal(http.StatusNotFound, err.StatusCode)
+		}
+	}
+}
+
+func (s *NotificationTestSuite) TestSubscribeUnauthorisedApp() {
+	ctx := s.T().Context()
+	app := client.AppRequest{
+		Name: new("demo-app"),
+		Desc: new("Demo Application"),
+	}
+
+	// Create an App
+	rsp, err := s.adminClient.CreateApp(ctx, app)
+	s.Require().NoError(err)
+	s.Require().NotNil(rsp)
+	s.Require().NotNil(rsp.ID)
+	appID := uuid.MustParse(*rsp.ID)
+
+	// Skip Authorisation. Subscribe notification stream from the app.
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	_, err = s.userStreamClient.StartNotificationStream(ctx, appID.String())
+	if s.Error(err) {
+		if err, ok := errors.AsType[*client.APIError](err); s.True(ok) && s.NotNil(err) {
+			s.Equal(http.StatusUnauthorized, err.StatusCode)
+		}
+	}
 }
 
 // Detect potential memory leaks from the notification stream.
