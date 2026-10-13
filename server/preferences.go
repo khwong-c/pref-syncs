@@ -174,6 +174,9 @@ func (s *Server) HandleStartNotification(w http.ResponseWriter, r *http.Request)
 		ctx, w,
 		sse.WithCloseMessage(&sse.Event{
 			Event: "server-disconnected",
+			Data: map[string]any{
+				"event": "server-disconnected",
+			},
 		}),
 	)
 	if err != nil {

@@ -41,6 +41,7 @@ type NotificationTestSuite struct {
 	adminClient       *client.Client
 	adminStreamClient *client.Client
 	httpClient        *http.Client
+	userToken         string
 
 	testTimeout time.Duration
 }
@@ -71,6 +72,7 @@ func (s *NotificationTestSuite) SetupSuite() {
 	s.userStreamClient = createAPIStreamingClient(s.server, client.WithAuth(
 		&client.BearerAuth{Token: t.AccessToken},
 	))
+	s.userToken = t.AccessToken
 
 	t, err = getClientCredentialsToken(
 		ctx, s.httpClient,
@@ -423,6 +425,39 @@ func (s *NotificationTestSuite) TestSubscribeUnauthorisedApp() {
 			s.Equal(http.StatusUnauthorized, err.StatusCode)
 		}
 	}
+}
+
+func (s *NotificationTestSuite) TestNotificationDisconnectionBehaviour() {
+	ctx := s.T().Context()
+	appID := s.createAndAuthoriseApp()
+
+	ctxStrm, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	streamingClient := httptestclient.NewStreamingClient(s.server.Handler)
+	req, err := http.NewRequestWithContext(
+		ctxStrm,
+		http.MethodGet,
+		fmt.Sprintf("/pref/notification/%s", appID.String()),
+		nil,
+	)
+	s.Require().NoError(err)
+
+	req.Header.Set("Authorization", "Bearer "+s.userToken)
+	resp, err := streamingClient.Do(req)
+	s.Require().NoError(err)
+	s.Require().NotNil(resp)
+	defer resp.Body.Close()
+
+	// Cancel context to trigger server disconnection and close message
+	cancel()
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	s.Require().NoError(err)
+
+	body := string(bodyBytes)
+	s.Contains(body, "event: server-disconnected\n")
+	s.Contains(body, "data: {\"event\":\"server-disconnected\"}\n")
 }
 
 // Detect potential memory leaks from the notification stream.
