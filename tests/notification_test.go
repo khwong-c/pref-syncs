@@ -17,6 +17,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/khwong-c/pref-syncs/tests/httptestclient"
+	"github.com/khwong-c/pref-syncs/tests/tags"
 
 	"github.com/khwong-c/pref-syncs/config"
 	"github.com/khwong-c/pref-syncs/drivers/sql"
@@ -426,6 +427,9 @@ func (s *NotificationTestSuite) TestSubscribeUnauthorisedApp() {
 
 // Detect potential memory leaks from the notification stream.
 func (s *NotificationTestSuite) TestMemoryUsage() {
+	if !tags.Tags.LongTest {
+		s.T().Skip("skipping memory test without long tag")
+	}
 	const memoryTolerance = 0.1
 	ctx := s.T().Context()
 	appID := s.createAndAuthoriseApp()
