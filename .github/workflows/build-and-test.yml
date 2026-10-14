@@ -36,6 +36,9 @@ jobs:
   clients:
     runs-on: ubuntu-latest
     steps:
+      - name: Install pnpm
+        uses: pnpm/setup@v3
+
       - name: Set up Node
         uses: actions/setup-node@v7
         with:
