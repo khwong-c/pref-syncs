@@ -31,7 +31,7 @@
     "preference-sync"
   ],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "packageManager": "pnpm@12.11.2",
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0",
