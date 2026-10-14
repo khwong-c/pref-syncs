@@ -5,3 +5,4 @@ This directory contains the Preference Sync Client SDK, which allows developers 
 ## Supported Languages
 
 - TypeScript (Plain)
+- TypeScript (React)
