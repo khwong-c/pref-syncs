@@ -12,7 +12,8 @@ import (
 )
 
 func (r *DataRepo) GetApp(ctx context.Context, id uuid.UUID) (*App, error) {
-	app, err := gorm.G[*App](r.db).
+	tx := r.getTxFromCtx(ctx)
+	app, err := gorm.G[*App](tx).
 		Where(&App{ID: id}).
 		Take(ctx)
 	if err != nil {
