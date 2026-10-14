@@ -72,11 +72,11 @@ jobs:
           done
 
       - name: Install Dependencies - TypeScript
-        run: pnpm install -d
+        run: pnpm install
         working-directory: ./sdk/ts
 
       - name: Install Dependencies - TypeScript React
-        run: pnpm install -d
+        run: pnpm install
         working-directory: ./sdk/ts-react
 
       - name: Build - TypeScript
