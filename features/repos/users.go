@@ -56,8 +56,7 @@ func (r *DataRepo) InitDB() error {
 }
 
 func (r *DataRepo) GetUser(ctx context.Context, id uuid.UUID) (*User, error) {
-	tx := r.getTxFromCtx(ctx)
-	user, err := gorm.G[*User](tx).
+	user, err := gorm.G[*User](r.db).
 		Where(&User{ID: id}).
 		Preload("Apps", nil).
 		Take(ctx)
