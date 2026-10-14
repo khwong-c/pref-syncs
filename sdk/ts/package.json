@@ -1,0 +1,47 @@
+{
+  "name": "pref-sync",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Typescript Preference Sync Client SDK.",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "vite build",
+    "typecheck": "tsc --noEmit",
+    "start": "tsx examples/index.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "generate": "npx @openapitools/openapi-generator-cli generate --openapi-generator-ignore-list 'git_push.sh' -i ../../openapi.yaml -g typescript-axios  -o ./src/generated"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.18.3",
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "@typescript/typescript6": "^6.0.2",
+    "openid-client": "^6.8.8",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.4",
+    "vite-plugin-dts": "^5.1.2",
+    "vitest": "^5.0.4"
+  },
+  "dependencies": {
+    "@openapitools/openapi-generator-cli": "^2.41.0",
+    "axios": "^1.20.0",
+    "parse-sse": "^0.1.0",
+    "typed-openapi": "^4.1.0"
+  }
+}
