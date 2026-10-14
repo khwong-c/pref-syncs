@@ -1,0 +1,95 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  server:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+
+      - name: Build
+        run: go build -v -o pref-syncs .
+
+      - name: Test
+        run: go test -json -v ./... 2>&1 | tee gotest.json
+
+      - name: Test Report - Detailed
+        uses: robherley/go-test-action@v1
+        with:
+          fromJSONFile: ./gotest.json
+          omit: |
+            untested
+            stderr
+            pie
+
+  clients:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+          package-manager-cache: 'true'
+
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+
+      - name: Build
+        run: go build -v -o pref-syncs .
+
+      - name: Run Server in the background
+        id: server
+        background: true
+        env:
+          PREF_SYNC_IDP_ENABLE: true
+        run: ./pref-syncs
+
+      - name: Wait for server to start
+        run: |
+          until curl -s http://localhost:7086/ping > /dev/null; do
+            sleep 1
+          done
+
+      - name: Install Dependencies - TypeScript
+        run: pnpm install -d
+        working-directory: ./sdk/ts
+
+      - name: Install Dependencies - TypeScript React
+        run: pnpm install -d
+        working-directory: ./sdk/ts-react
+
+      - name: Build - TypeScript
+        run: pnpm build
+        working-directory: ./sdk/ts
+
+      - name: Build - TypeScript React
+        run: pnpm build
+        working-directory: ./sdk/ts-react
+
+      - name: Run Tests - TypeScript
+        run: pnpm test
+        working-directory: ./sdk/ts
+
+      - name: Run Tests - TypeScript React
+        run: pnpm test
+        working-directory: ./sdk/ts-react
+
+      - name: Stop server
+        cancel: server
