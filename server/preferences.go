@@ -173,10 +173,7 @@ func (s *Server) HandleStartNotification(w http.ResponseWriter, r *http.Request)
 	conn, err := sse.Upgrade(
 		ctx, w,
 		sse.WithCloseMessage(&sse.Event{
-			Event: "server-disconnected",
-			Data: map[string]any{
-				"event": "server-disconnected",
-			},
+			Data: sse.Raw("[DONE]"),
 		}),
 	)
 	if err != nil {

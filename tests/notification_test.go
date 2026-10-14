@@ -456,8 +456,7 @@ func (s *NotificationTestSuite) TestNotificationDisconnectionBehaviour() {
 	s.Require().NoError(err)
 
 	body := string(bodyBytes)
-	s.Contains(body, "event: server-disconnected\n")
-	s.Contains(body, "data: {\"event\":\"server-disconnected\"}\n")
+	s.Contains(body, "[DONE]\n")
 }
 
 // Detect potential memory leaks from the notification stream.
