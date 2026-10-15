@@ -11,18 +11,32 @@ export interface Config {
     accessToken: string;
     src?: string;
     autoSrc?: boolean;
+
+    // Advanced Authentication Configs
+    // Other services between the Frontend Client and the Backend (e.g. BFF Pattern) may use
+    // Session Cookies or other Headers for authentication.
+    // Consider the following options if your frontend is not interfacing the backend directly.
+    headers?: any;
+    withCredentials?: boolean;
 }
 
 export const createPrefSyncClient = (config: Config) => {
     const clientConfig = new ClientConfig({
         basePath: config.basePath,
         accessToken: config.accessToken,
+        ...(config?.headers ? {
+            baseOptions: {
+                headers: config.headers,
+            }
+        } : {})
     })
 
     const userAPI = new UsersApi(clientConfig)
     const appsAPI = new AppsApi(clientConfig)
     const prefAPI = new PreferencesApi(clientConfig)
     config.autoSrc ??= true
+
+    const withCredOpts = config?.withCredentials !== undefined ? {withCredentials: config.withCredentials} : {}
 
     const src = config.src || (
         !config.autoSrc ?
@@ -33,20 +47,22 @@ export const createPrefSyncClient = (config: Config) => {
     )
 
     return {
-        getUser: async () => (await userAPI.getUser())?.data,
-        deleteUser: async () => (await userAPI.deleteUser())?.data,
-        getApp: async (id: string) => (await appsAPI.getApp(id))?.data,
+        getUser: async () => (await userAPI.getUser({...withCredOpts}))?.data,
+        deleteUser: async () => (await userAPI.deleteUser({...withCredOpts}))?.data,
+        getApp: async (id: string) => (await appsAPI.getApp(id, {...withCredOpts}))?.data,
 
         // createApp requires Admin / Apps Creator authority. Regular users may not be authorized for this call.
-        createApp: async (name: string, desc: string) => (await appsAPI.createApp({name, desc}))?.data,
+        createApp: async (name: string, desc: string) => (
+            await appsAPI.createApp({name, desc}, {...withCredOpts})
+        )?.data,
 
-        authoriseApp: async (appID: string) => (await userAPI.authoriseUser(appID))?.data,
-        deauthoriseApp: async (appID: string) => (await userAPI.deauthoriseUser(appID))?.data,
-        getPref: async (appID: string) => (await prefAPI.getPref(appID))?.data,
+        authoriseApp: async (appID: string) => (await userAPI.authoriseUser(appID, {...withCredOpts}))?.data,
+        deauthoriseApp: async (appID: string) => (await userAPI.deauthoriseUser(appID, {...withCredOpts}))?.data,
+        getPref: async (appID: string) => (await prefAPI.getPref(appID, {...withCredOpts}))?.data,
         postPref: async (appID: string, payload: any) => {
             const rsp = src !== undefined ?
-                await prefAPI.postPrefFromSource(appID, src, payload) :
-                await prefAPI.postPref(appID, payload)
+                await prefAPI.postPrefFromSource(appID, src, payload, {...withCredOpts}) :
+                await prefAPI.postPref(appID, payload, {...withCredOpts})
             return rsp?.data
         },
         subscribeNotification: async (
@@ -61,6 +77,7 @@ export const createPrefSyncClient = (config: Config) => {
                 headers: {Accept: 'text/event-stream'},
                 adapter: 'fetch',
                 signal: controller.signal,
+                ...withCredOpts,
             } satisfies RawAxiosRequestConfig
             const rsp = src !== undefined ?
                 await prefAPI.startNotificationFromSource(appID, src, axiosOpt) :
